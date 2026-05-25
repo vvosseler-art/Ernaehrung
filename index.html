@@ -96,6 +96,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .chip.protein { background: #E6F1FB; color: #185FA5; }
 .chip.kh { background: #FAEEDA; color: #854F0B; }
 .chip.fat { background: #FAECE7; color: #993C1D; }
+.recipe-dropdown { border: 0.5px solid #e0e0d8; border-radius: 14px; margin-bottom: 0.5rem; background: #fff; overflow: hidden; }
+.recipe-dropdown-header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer; user-select: none; }
+.recipe-dropdown-header:hover { background: #f9f9f6; }
+.recipe-dropdown-title { font-size: 14px; font-weight: 600; color: #1a1a1a; flex: 1; }
+.recipe-dropdown-meta { font-size: 11px; color: #aaa; white-space: nowrap; }
+.recipe-dropdown-arrow { font-size: 11px; color: #aaa; transition: transform .2s; flex-shrink: 0; }
+.recipe-dropdown-arrow.open { transform: rotate(180deg); }
+.recipe-dropdown-body { display: none; padding: 0 14px 14px; border-top: 0.5px solid #f0f0ea; }
+.recipe-dropdown-body.open { display: block; }
+.recipe-dropdown-actions { display: flex; gap: 6px; justify-content: flex-end; padding-top: 10px; margin-top: 10px; border-top: 0.5px solid #f0f0ea; }
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: #fff; padding: 10px 22px; border-radius: 20px; font-size: 13px; font-weight: 500; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 9999; white-space: nowrap; }
 .toast.show { opacity: 1; }
 .hint { font-size: 12px; color: #aaa; }
@@ -324,96 +334,99 @@ select { font-size: 13px; border: 0.5px solid #d0d0c8; background: #fff; color: 
 
   <!-- REZEPTE -->
   <div id="rezepte" class="section">
-    <div style="display:flex;gap:8px;margin-bottom:1.25rem;">
-      <button id="rc-mode-calc" onclick="rcSetMode('calc')" class="add-btn" style="flex:1;">📊 Makros berechnen</button>
-      <button id="rc-mode-plan" onclick="rcSetMode('plan')" class="btn-sm" style="flex:1;justify-content:center;">🎯 Mengen planen</button>
-    </div>
-    <div id="rc-section-calc">
-      <div class="add-form" style="margin-bottom:1.25rem;">
-        <h3>📊 Makros berechnen</h3>
-        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;">
-          <div class="form-field" style="flex:2;min-width:160px;"><label>Rezeptname</label><input type="text" id="rc-name" placeholder="z.B. Hähnchen-Bowl" /></div>
-          <div class="form-field" style="flex:1;min-width:80px;"><label>Portionen</label><input type="number" id="rc-portions" value="1" min="1" max="20" step="1" style="width:100%;" /></div>
+
+    <!-- MAKROS BERECHNEN -->
+    <div class="add-form" style="margin-bottom:1.25rem;">
+      <h3>📊 Makros berechnen</h3>
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;">
+        <div class="form-field" style="flex:2;min-width:160px;"><label>Rezeptname</label><input type="text" id="rc-name" placeholder="z.B. Hähnchen-Bowl" /></div>
+        <div class="form-field" style="flex:1;min-width:80px;">
+          <label>Portionen</label>
+          <input type="number" id="rc-portions" value="1" min="1" max="30" step="1" style="width:100%;" onchange="rcUpdatePortions()" />
         </div>
-        <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px;">Zutaten</div>
-        <div id="rc-ingredients-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
-        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;">
-          <div class="form-field" style="flex:3;min-width:140px;"><label>Zutat wählen</label>
-            <select id="rc-food-select" style="width:100%;padding:8px 10px;border:0.5px solid #d0d0c8;border-radius:8px;"><option value="">— Lebensmittel wählen —</option></select>
+      </div>
+      <div style="font-size:12px;color:#aaa;margin-bottom:10px;">Mengen gelten pro Portion. Bei z.B. 3 Portionen werden die Gramm-Mengen automatisch mit 3 multipliziert (z.B. für 3 Tage vorkochen).</div>
+      <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px;">Zutaten <span id="rc-portions-hint" style="font-weight:400;color:#aaa;"></span></div>
+      <div id="rc-ingredients-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;">
+        <div class="form-field" style="flex:3;min-width:140px;"><label>Zutat wählen</label>
+          <select id="rc-food-select" style="width:100%;padding:8px 10px;border:0.5px solid #d0d0c8;border-radius:8px;"><option value="">— Lebensmittel wählen —</option></select>
+        </div>
+        <div class="form-field" style="flex:1;min-width:80px;"><label>Menge pro Portion (g)</label><input type="number" id="rc-amount" placeholder="100" min="1" style="width:100%;" /></div>
+        <button class="add-btn" style="padding:8px 14px;white-space:nowrap;" onclick="rcAddIngredient()">＋</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="add-btn" onclick="rcCalculate()">📊 Berechnen</button>
+        <button class="btn-sm" onclick="rcSaveRecipe()" id="rc-save-btn" style="display:none;">💾 Speichern</button>
+        <button class="btn-sm" onclick="rcClear()">✕ Leeren</button>
+      </div>
+    </div>
+    <div id="rc-result" style="display:none;">
+      <div class="card" style="margin-bottom:1rem;">
+        <h3 id="rc-result-title">Ergebnis</h3>
+        <div class="metric-grid" style="margin-bottom:1rem;" id="rc-result-metrics"></div>
+        <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px;">Makro-Vergleich mit Tagesziel</div>
+        <div id="rc-macro-compare"></div>
+        <div style="font-size:12px;font-weight:600;color:#555;margin:12px 0 8px;">Zutaten-Übersicht</div>
+        <table class="entry-table"><thead><tr><th>Zutat</th><th>pro Portion</th><th>Gesamt</th><th>Kcal</th><th>P</th><th>KH</th><th>F</th></tr></thead><tbody id="rc-result-tbody"></tbody></table>
+      </div>
+    </div>
+
+    <div style="border-top:0.5px solid #e0e0d8;margin:1.5rem 0;"></div>
+
+    <!-- MENGEN PLANEN -->
+    <div class="add-form" style="margin-bottom:1.25rem;">
+      <h3>🎯 Mengen planen</h3>
+      <div style="font-size:12px;color:#888;margin-bottom:14px;">Wähle deine Zutaten und die App berechnet die Gramm-Mengen automatisch anhand deines Makroziels.</div>
+
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px;">Mahlzeiten pro Tag</div>
+          <div style="display:flex;gap:8px;">
+            <button id="plan-meal-2" class="type-btn selected-protein" onclick="planSetMeal('2',this)" style="flex:1;min-width:100px;">2 Mahlzeiten<br><span style="font-size:10px;font-weight:400;" id="plan-2-label"></span></button>
+            <button id="plan-meal-3" class="type-btn" onclick="planSetMeal('3',this)" style="flex:1;min-width:100px;">3 Mahlzeiten<br><span style="font-size:10px;font-weight:400;" id="plan-3-label"></span></button>
           </div>
-          <div class="form-field" style="flex:1;min-width:80px;"><label>Menge (g)</label><input type="number" id="rc-amount" placeholder="100" min="1" style="width:100%;" /></div>
-          <button class="add-btn" style="padding:8px 14px;white-space:nowrap;" onclick="rcAddIngredient()">＋</button>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="add-btn" onclick="rcCalculate()">📊 Berechnen</button>
-          <button class="btn-sm" onclick="rcSaveRecipe()" id="rc-save-btn" style="display:none;">💾 Speichern</button>
-          <button class="btn-sm" onclick="rcClear()">✕ Leeren</button>
+        <div class="form-field" style="min-width:120px;">
+          <label>Tage vorkochen</label>
+          <input type="number" id="plan-days" value="1" min="1" max="14" step="1" style="width:100%;font-size:15px;padding:8px 10px;border:0.5px solid #d0d0c8;border-radius:8px;" />
         </div>
       </div>
-      <div id="rc-result" style="display:none;">
-        <div class="card" style="margin-bottom:1rem;">
-          <h3 id="rc-result-title">Ergebnis</h3>
-          <div class="metric-grid" style="margin-bottom:1rem;" id="rc-result-metrics"></div>
-          <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px;">Makro-Vergleich</div>
-          <div id="rc-macro-compare"></div>
-          <div style="font-size:12px;font-weight:600;color:#555;margin:12px 0 8px;">Zutaten</div>
-          <table class="entry-table"><thead><tr><th>Zutat</th><th>Menge</th><th>Kcal</th><th>P</th><th>KH</th><th>F</th></tr></thead><tbody id="rc-result-tbody"></tbody></table>
+
+      <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">Zutaten wählen</div>
+      <div style="font-size:12px;color:#aaa;margin-bottom:10px;">Pro Gruppe mindestens eine Zutat wählen. Mehrere möglich — Menge wird gleichmäßig aufgeteilt.</div>
+      <div id="plan-food-groups" style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="add-btn" onclick="planCalculate()">🎯 Mengen berechnen</button>
+        <button class="btn-sm" onclick="planClear()">✕ Leeren</button>
+      </div>
+    </div>
+
+    <div id="plan-result" style="display:none;">
+      <div class="card" style="margin-bottom:1rem;">
+        <h3 id="plan-result-title">Dein Mahlzeit-Plan</h3>
+        <div style="font-size:12px;color:#888;margin-bottom:12px;" id="plan-result-sub"></div>
+        <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px;">Mengen anpassen</div>
+        <div style="font-size:12px;color:#aaa;margin-bottom:10px;">Ändere die Gramm-Mengen — Makros werden live aktualisiert. Rot = Ziel überschritten.</div>
+        <div id="plan-result-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;"></div>
+        <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px;">Makro-Übersicht</div>
+        <div id="plan-result-metrics" class="metric-grid" style="margin-bottom:12px;"></div>
+        <div id="plan-macro-compare"></div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-sm" onclick="planReset()">↺ Zurücksetzen</button>
+          <button class="btn-sm green" onclick="planSaveAsRecipe()">💾 Als Rezept speichern</button>
         </div>
       </div>
     </div>
-    <div id="rc-section-plan" style="display:none;">
-      <div class="add-form" style="margin-bottom:1.25rem;">
-        <h3>🎯 Mengen für Makroziel berechnen</h3>
-        <div style="font-size:12px;color:#888;margin-bottom:14px;">Wähle Mahlzeit und Zutaten — die App berechnet die Gramm-Mengen automatisch.</div>
-        <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px;">Für welche Mahlzeit?</div>
-        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-          <button id="plan-meal-wk2" class="type-btn selected-protein" onclick="planSetMeal('wk2',this)" style="flex:1;">Mo–Fr<br><span style="font-size:10px;font-weight:400;" id="plan-wk2-label"></span></button>
-          <button id="plan-meal-wk3" class="type-btn" onclick="planSetMeal('wk3',this)" style="flex:1;">Mo–Fr (3M)<br><span style="font-size:10px;font-weight:400;" id="plan-wk3-label"></span></button>
-          <button id="plan-meal-we2" class="type-btn" onclick="planSetMeal('we2',this)" style="flex:1;">Sa & So (2M)<br><span style="font-size:10px;font-weight:400;" id="plan-we2-label"></span></button>
-          <button id="plan-meal-we3" class="type-btn" onclick="planSetMeal('we3',this)" style="flex:1;">Sa & So (3M)<br><span style="font-size:10px;font-weight:400;" id="plan-we3-label"></span></button>
-        </div>
-        <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">Zutaten wählen</div>
-        <div style="font-size:12px;color:#aaa;margin-bottom:10px;">Pro Gruppe mindestens eine Zutat wählen. Mehrere möglich — Menge wird gleichmäßig aufgeteilt.</div>
-        <div id="plan-food-groups" style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;"></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="add-btn" onclick="planCalculate()">🎯 Mengen berechnen</button>
-          <button class="btn-sm" onclick="planClear()">✕ Leeren</button>
-        </div>
-      </div>
-      <div id="plan-result" style="display:none;">
-        <div class="card" style="margin-bottom:1rem;">
-          <h3 id="plan-result-title">Dein Mahlzeit-Plan</h3>
-          <div style="font-size:12px;color:#888;margin-bottom:12px;" id="plan-result-sub"></div>
-          <div class="metric-grid" style="margin-bottom:1rem;" id="plan-result-metrics"></div>
-          <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px;">Benötigte Mengen</div>
-          <div id="plan-result-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;"></div>
-          <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px;">Makro-Vergleich</div>
-          <div id="plan-macro-compare"></div>
-          <div style="margin-top:12px;"><button class="btn-sm" onclick="planSaveAsRecipe()">💾 Als Rezept speichern</button></div>
-        </div>
-      </div>
-    </div>
-    <div style="font-size:16px;font-weight:600;margin-bottom:1rem;margin-top:0.5rem;">Gespeicherte Rezepte</div>
+
+    <div style="border-top:0.5px solid #e0e0d8;margin:1.5rem 0;"></div>
+
+    <!-- GESPEICHERTE REZEPTE -->
+    <div style="font-size:16px;font-weight:600;margin-bottom:1rem;">Gespeicherte Rezepte</div>
     <div style="margin-bottom:1rem;">
       <button class="add-btn" onclick="openTextRecipeModal()" style="width:100%;justify-content:center;">📝 Rezept als Text hinzufügen</button>
     </div>
     <div id="saved-recipes-list"></div>
-    <div style="font-size:14px;font-weight:600;color:#888;margin:1.5rem 0 0.75rem;">Vorlagen</div>
-    <div class="recipe-card">
-      <div class="recipe-title">🥣 Frühstück — Overnight Oats "Protein-Berry"</div>
-      <div class="recipe-meta"><span class="chip protein">Protein</span><span class="chip kh">KH</span></div>
-      <div class="recipe-steps">1. Haferflocken, Skyr und Süßungsmittel verrühren.<br>2. Beeren unterheben, Chiasamen drüber.<br>3. Über Nacht kalt stellen.</div>
-    </div>
-    <div class="recipe-card">
-      <div class="recipe-title">🍝 Mittag — Penne mit Hähnchen und Brokkoli</div>
-      <div class="recipe-meta"><span class="chip protein">Protein</span><span class="chip kh">KH</span><span class="chip fat">Fett</span></div>
-      <div class="recipe-steps">1. Penne kochen (10 Min.).<br>2. Brokkoli garen (5–6 Min.).<br>3. Hähnchen anbraten, Rama Cremefine dazu.<br>4. Alles vermengen.</div>
-    </div>
-    <div class="recipe-card">
-      <div class="recipe-title">🥚 Abend — Rührei-Bowl mit Süßkartoffel</div>
-      <div class="recipe-meta"><span class="chip protein">Protein</span><span class="chip kh">KH</span></div>
-      <div class="recipe-steps">1. Süßkartoffel 15 Min. dämpfen.<br>2. Brokkoli garen.<br>3. Eier + Eiklar 5 Min. braten.</div>
-    </div>
   </div>
 </div>
 
@@ -432,30 +445,116 @@ select { font-size: 13px; border: 0.5px solid #d0d0c8; background: #fff; color: 
 
 <div class="modal-overlay" id="text-recipe-modal">
   <div class="modal" style="max-width:560px;width:95%;">
-    <h3>📝 Rezept als Text eingeben</h3>
-    <p style="margin-bottom:12px;">Schreib das Rezept einfach so wie du möchtest — mit Zutaten, Mengen und Zubereitungsschritten. Die KI formatiert es automatisch.</p>
-    <div class="form-field" style="margin-bottom:12px;">
-      <label>Rezepttext</label>
-      <textarea id="tr-text" rows="8" placeholder="z.B.:
-Hähnchen-Bowl für 2 Personen
-- 300g Hähnchenbrust
-- 200g Reis
-- 1 Paprika
-- Sojasoße, Knoblauch, Ingwer
-
-Hähnchen würfeln und anbraten. Reis kochen. Paprika in Streifen schneiden und dazugeben. Mit Sojasoße, Knoblauch und Ingwer abschmecken." style="width:100%;padding:10px;border:0.5px solid #d0d0c8;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;"></textarea>
-    </div>
-    <div id="tr-loading" style="display:none;text-align:center;padding:1rem;color:#888;font-size:13px;">
-      <div style="margin-bottom:8px;">⏳ Rezept wird formatiert…</div>
-    </div>
-    <div id="tr-preview" style="display:none;">
-      <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px;">Vorschau</div>
-      <div class="recipe-card" style="margin-bottom:12px;" id="tr-preview-card"></div>
+    <h3>📝 Neues Rezept hinzufügen</h3>
+    <div class="modal-body">
+      <div class="form-grid" style="margin-bottom:0;">
+        <div class="form-field" style="grid-column:span 2;">
+          <label>Rezeptname</label>
+          <input type="text" id="tr-name" placeholder="z.B. Hähnchen-Bowl" />
+        </div>
+        <div class="form-field">
+          <label>Portionen</label>
+          <input type="number" id="tr-portions" value="1" min="1" max="30" />
+        </div>
+        <div class="form-field">
+          <label>Kategorie</label>
+          <select id="tr-category" style="padding:8px 10px;border:0.5px solid #d0d0c8;border-radius:8px;width:100%;">
+            <option value="Mittag">Mittag</option>
+            <option value="Frühstück">Frühstück</option>
+            <option value="Abend">Abend</option>
+            <option value="Snack">Snack</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Zubereitungszeit</label>
+          <input type="text" id="tr-time" placeholder="z.B. 30 Min." />
+        </div>
+      </div>
+      <div class="form-field">
+        <label>Tags</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;" id="tr-tags-btns">
+          <button type="button" onclick="trToggleTag(this,'Protein')" class="type-btn" style="flex:none;padding:5px 12px;">Protein</button>
+          <button type="button" onclick="trToggleTag(this,'Kohlenhydrate')" class="type-btn" style="flex:none;padding:5px 12px;">Kohlenhydrate</button>
+          <button type="button" onclick="trToggleTag(this,'Fett')" class="type-btn" style="flex:none;padding:5px 12px;">Fett</button>
+          <button type="button" onclick="trToggleTag(this,'Vegetarisch')" class="type-btn" style="flex:none;padding:5px 12px;">Vegetarisch</button>
+          <button type="button" onclick="trToggleTag(this,'Vegan')" class="type-btn" style="flex:none;padding:5px 12px;">Vegan</button>
+          <button type="button" onclick="trToggleTag(this,'Schnell')" class="type-btn" style="flex:none;padding:5px 12px;">Schnell</button>
+          <button type="button" onclick="trToggleTag(this,'Meal Prep')" class="type-btn" style="flex:none;padding:5px 12px;">Meal Prep</button>
+        </div>
+      </div>
+      <div class="form-field">
+        <label>Zutaten — eine Zeile pro Zutat (z.B. "300g Hähnchenbrust")</label>
+        <textarea id="tr-ingredients" rows="5" style="width:100%;padding:10px;border:0.5px solid #d0d0c8;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;margin-top:4px;" placeholder="300g Hähnchenbrust&#10;200g Reis&#10;1 Paprika&#10;2 EL Sojasoße"></textarea>
+      </div>
+      <div class="form-field">
+        <label>Zubereitungsschritte — eine Zeile pro Schritt</label>
+        <textarea id="tr-steps" rows="5" style="width:100%;padding:10px;border:0.5px solid #d0d0c8;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;margin-top:4px;" placeholder="1. Hähnchen in Streifen schneiden und anbraten.&#10;2. Reis nach Packungsanleitung kochen.&#10;3. Paprika in Streifen schneiden und dazugeben.&#10;4. Mit Sojasoße abschmecken und anrichten."></textarea>
+      </div>
+      <div class="form-field">
+        <label>Tipp (optional)</label>
+        <input type="text" id="tr-tip" placeholder="z.B. Schmeckt auch kalt gut!" />
+      </div>
     </div>
     <div class="modal-btns">
       <button class="btn-sm" onclick="closeTextRecipeModal()">Abbrechen</button>
-      <button class="btn-sm" onclick="trFormat()" id="tr-format-btn">✨ Formatieren</button>
-      <button class="btn-sm green" onclick="trSave()" id="tr-save-btn" style="display:none;">💾 Speichern</button>
+      <button class="btn-sm green" onclick="trSaveDirect()">💾 Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="plan-save-modal">
+  <div class="modal" style="max-width:500px;width:95%;">
+    <h3>💾 Rezept speichern</h3>
+    <div class="modal-body">
+      <div class="form-field">
+        <label>Rezeptname</label>
+        <input type="text" id="plan-save-name" placeholder="z.B. Hähnchen-Bowl" />
+      </div>
+      <div class="form-field">
+        <label>Zubereitungsschritte (optional) — eine Zeile pro Schritt</label>
+        <textarea id="plan-save-steps" rows="6" placeholder="1. Hähnchen würzen und anbraten.
+2. Gemüse in Streifen schneiden.
+3. Alles in einer Bowl anrichten." style="width:100%;padding:10px;border:0.5px solid #d0d0c8;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;margin-top:4px;"></textarea>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-sm" onclick="document.getElementById('plan-save-modal').classList.remove('show')">Abbrechen</button>
+      <button class="btn-sm green" onclick="planConfirmSave()">💾 Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="recipe-edit-modal">
+  <div class="modal" style="max-width:540px;width:95%;">
+    <h3>✏️ Rezept bearbeiten</h3>
+    <input type="hidden" id="re-id" />
+    <div class="modal-body">
+      <div class="form-grid" style="margin-bottom:0;">
+        <div class="form-field" style="grid-column:span 2;">
+          <label>Rezeptname</label>
+          <input type="text" id="re-name" placeholder="Rezeptname" />
+        </div>
+        <div class="form-field">
+          <label>Portionen</label>
+          <input type="number" id="re-portions" value="1" min="1" max="30" />
+        </div>
+      </div>
+      <div class="form-field">
+        <label>Zutaten — eine Zeile pro Zutat (z.B. "200g Hähnchenbrust")</label>
+        <textarea id="re-ingredients" rows="5" style="width:100%;padding:10px;border:0.5px solid #d0d0c8;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;margin-top:4px;" placeholder="200g Hähnchenbrust&#10;100g Reis&#10;1 Paprika"></textarea>
+      </div>
+      <div class="form-field">
+        <label>Zubereitungsschritte — eine Zeile pro Schritt</label>
+        <textarea id="re-steps" rows="5" style="width:100%;padding:10px;border:0.5px solid #d0d0c8;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;margin-top:4px;" placeholder="1. Hähnchen anbraten.&#10;2. Reis kochen.&#10;3. Alles anrichten."></textarea>
+      </div>
+      <div class="form-field">
+        <label>Tipp (optional)</label>
+        <input type="text" id="re-tip" placeholder="z.B. Schmeckt auch kalt gut!" />
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-sm" onclick="document.getElementById('recipe-edit-modal').classList.remove('show')">Abbrechen</button>
+      <button class="btn-sm green" onclick="rcSaveEditedRecipe()">💾 Speichern</button>
     </div>
   </div>
 </div>
@@ -488,6 +587,42 @@ async function sbSet(key, value) {
 
 // ── DB STATE ──────────────────────────────────────────────────
 const DEFAULT_SETTINGS = { kcal:1523, p:132, k:105, f:59, ziel:65, mealsWeek:2, mealsWeekend:3 };
+
+const DEFAULT_RECIPES = [{
+  id: 1, name: 'Yakisoba — Japanische Gebratene Nudeln', portions: 2,
+  ingredients: [], savedAt: '01.01.2025', isTextRecipe: true,
+  textData: {
+    title: 'Yakisoba — Japanische Gebratene Nudeln',
+    portions: 2, time: 'ca. 25 Min.', category: 'Mittag',
+    tags: ['Kohlenhydrate','Protein'],
+    tip: 'Die Sauce lässt sich auch im Voraus mischen und im Kühlschrank aufbewahren. Mayonnaise nach japanischer Art (z.B. Kewpie) macht das Gericht noch authentischer.',
+    ingredients: [
+      {amount:'200 g', name:'Yakisoba-Nudeln'},
+      {amount:'100 g', name:'Schweinebauch (2 mm dünne Streifen)'},
+      {amount:'50 g',  name:'Weißkohl / Spitzkohl'},
+      {amount:'1/3',   name:'Karotte (groß)'},
+      {amount:'1/4',   name:'Zwiebel (groß)'},
+      {amount:'50 g',  name:'Bambussprossen'},
+      {amount:'90 ml', name:'Wasser'},
+      {amount:'',      name:'Pfeffer & Öl'},
+      {amount:'4–5 EL',name:'Yakisoba-Sauce (fertig) — oder selbst mischen:'},
+      {amount:'2 EL',  name:'Bulldog-Sauce'},
+      {amount:'1 TL',  name:'Austernsauce'},
+      {amount:'1 TL',  name:'Sojasauce'},
+      {amount:'1 TL',  name:'Zucker'},
+      {amount:'',      name:'Furikake, Aonori, Roter Ingwer, Mayonnaise (Belag)'}
+    ],
+    steps: [
+      'Kohl in mundgerechte Stücke, Karotte und Zwiebel in dünne Streifen schneiden. Auch das Fleisch in dünne, mundgerechte Stücke schneiden.',
+      'Etwas Öl in die Pfanne geben und die Zwiebeln bei starker Hitze anbraten.',
+      'Karotten hinzufügen. Sobald sie gar sind, den Kohl dazugeben.',
+      'Gemüse an den Rand schieben und das Fleisch in der Mitte anbraten, bis es schön braun ist.',
+      'Nudeln in die Pfanne legen, Wasser dazugeben und warten bis sich die Nudeln erwärmt haben. Vorsichtig mit Stäbchen teilen.',
+      'Wenn das Wasser verdampft ist, die Yakisoba-Sauce dazugeben. Sobald die Sauce an den Nudeln klebt, Pfeffer darüber streuen und vom Herd nehmen.',
+      'Roten Ingwer, Furikake und/oder Aonori auf die Nudeln geben. Fertig! Itadakimasu! 🎉'
+    ]
+  }
+}];
 const DEFAULT_FOODS = [
   {id:1,name:'Hähnchenbrust',kcal:102,p:23,k:0,f:1,g:210,type:'protein'},
   {id:2,name:'Magerquark / Skyr',kcal:68,p:12,k:4,f:0,g:320,type:'protein'},
@@ -545,7 +680,8 @@ async function loadAll() {
     if (foods)    db.foods    = foods;
     if (settings) db.settings = {...DEFAULT_SETTINGS, ...settings};
     if (recipes)  db.recipes  = recipes;
-    if (!db.foods.length)  db.foods  = JSON.parse(JSON.stringify(DEFAULT_FOODS));
+    if (!db.foods.length)   db.foods   = JSON.parse(JSON.stringify(DEFAULT_FOODS));
+    if (!db.recipes.length) db.recipes = JSON.parse(JSON.stringify(DEFAULT_RECIPES));
     nextFoodId = db.foods.length ? Math.max(...db.foods.map(f=>f.id)) + 1 : 200;
     const total = db.weight.length + db.mass.length + db.score.length + db.foods.length;
     setDbStatus('ok', total + ' Datensätze geladen');
@@ -566,6 +702,7 @@ function renderAll() {
   renderSavedRecipes();
   rcPopulateFoodSelect();
   rcRenderIngredients();
+  planInit();
 }
 
 // ── HELPERS ───────────────────────────────────────────────────
@@ -597,6 +734,7 @@ function showTab(id,btn) {
   document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
   document.getElementById(id).classList.add('active'); btn.classList.add('active');
   if(id==='dashboard') updateDashboard();
+  if(id==='rezepte') { planInit(); rcPopulateFoodSelect(); }
 }
 function showSub(id,btn) {
   document.querySelectorAll('.subsection').forEach(s=>s.classList.remove('active'));
@@ -949,14 +1087,17 @@ function rcAddIngredient(){
 }
 function rcRenderIngredients(){
   const list=document.getElementById('rc-ingredients-list');
+  const portions=parseInt(document.getElementById('rc-portions').value)||1;
   if(!rcIngredients.length){list.innerHTML='<div style="font-size:13px;color:#aaa;padding:6px 0;">Noch keine Zutaten</div>';return;}
   list.innerHTML=rcIngredients.map((ing,i)=>{
     const food=db.foods.find(f=>f.id===ing.foodId);
     const kcal=food?(food.kcal*ing.amount/100).toFixed(0):'?';
+    const totalG=ing.amount*portions;
     return `<div style="display:flex;align-items:center;gap:8px;background:#f5f5f0;border-radius:8px;padding:8px 10px;font-size:13px;">
       <span style="flex:1;font-weight:600;">${ing.name}</span>
-      <input type="number" value="${ing.amount}" min="1" onchange="rcUpdateAmount(${i},this.value)" style="width:72px;padding:4px 6px;border:0.5px solid #d0d0c8;border-radius:6px;font-size:13px;text-align:right;" /> <span style="color:#888;">g</span>
-      <span style="color:#aaa;font-size:12px;min-width:60px;">${kcal} kcal</span>
+      <input type="number" value="${ing.amount}" min="1" onchange="rcUpdateAmount(${i},this.value)" style="width:68px;padding:4px 6px;border:0.5px solid #d0d0c8;border-radius:6px;font-size:13px;text-align:right;" />
+      <span style="color:#888;font-size:12px;">g${portions>1?' × '+portions+' = <strong>'+totalG+'g</strong>':''}</span>
+      <span style="color:#aaa;font-size:11px;min-width:50px;">${kcal} kcal</span>
       <button onclick="rcRemoveIngredient(${i})" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:15px;">✕</button>
     </div>`;
   }).join('');
@@ -975,23 +1116,36 @@ function rcCalculate(){
     totKcal+=kcal;totP+=p;totK+=k;totF+=f;
     return {name:food.name,amount:ing.amount,kcal,p,k,f};
   }).filter(Boolean);
-  const pKcal=totKcal/portions,pP=totP/portions,pK=totK/portions,pF=totF/portions;
   const s=db.settings;
-  const pcK=Math.min(100,Math.round(pKcal/s.kcal*100)),pcP=Math.min(100,Math.round(pP/s.p*100)),pcKH=Math.min(100,Math.round(pK/s.k*100)),pcF=Math.min(100,Math.round(pF/s.f*100));
+  const pcK=Math.min(100,Math.round(totKcal/s.kcal*100)),pcP=Math.min(100,Math.round(totP/s.p*100)),pcKH=Math.min(100,Math.round(totK/s.k*100)),pcF=Math.min(100,Math.round(totF/s.f*100));
+  const totKcalAll=totKcal*portions,totPAll=totP*portions,totKAll=totK*portions,totFAll=totF*portions;
   document.getElementById('rc-result-title').textContent=name+(portions>1?' · '+portions+' Portionen':' · 1 Portion');
   document.getElementById('rc-result-metrics').innerHTML=`
-    <div class="metric"><div class="label">Kalorien/Portion</div><div class="value">${pKcal.toFixed(0)}</div><div class="sub">kcal</div></div>
-    <div class="metric"><div class="label" style="color:#185FA5;">Protein</div><div class="value" style="color:#185FA5;">${pP.toFixed(1)} g</div><div class="sub">${Math.round(pP*4.1)} kcal</div></div>
-    <div class="metric"><div class="label" style="color:#854F0B;">KH</div><div class="value" style="color:#854F0B;">${pK.toFixed(1)} g</div><div class="sub">${Math.round(pK*4.1)} kcal</div></div>
-    <div class="metric"><div class="label" style="color:#993C1D;">Fett</div><div class="value" style="color:#993C1D;">${pF.toFixed(1)} g</div><div class="sub">${Math.round(pF*9.3)} kcal</div></div>
-    ${portions>1?`<div class="metric"><div class="label">Gesamt</div><div class="value">${totKcal.toFixed(0)}</div><div class="sub">kcal total</div></div>`:''}`;
+    <div class="metric"><div class="label">Kcal/Portion</div><div class="value">${totKcal.toFixed(0)}</div><div class="sub">kcal</div></div>
+    <div class="metric"><div class="label" style="color:#185FA5;">Protein/Port.</div><div class="value" style="color:#185FA5;">${totP.toFixed(1)} g</div><div class="sub">${Math.round(totP*4.1)} kcal</div></div>
+    <div class="metric"><div class="label" style="color:#854F0B;">KH/Port.</div><div class="value" style="color:#854F0B;">${totK.toFixed(1)} g</div><div class="sub">${Math.round(totK*4.1)} kcal</div></div>
+    <div class="metric"><div class="label" style="color:#993C1D;">Fett/Port.</div><div class="value" style="color:#993C1D;">${totF.toFixed(1)} g</div><div class="sub">${Math.round(totF*9.3)} kcal</div></div>
+    ${portions>1?`
+    <div class="metric"><div class="label">Kcal gesamt</div><div class="value">${totKcalAll.toFixed(0)}</div><div class="sub">alle ${portions} Port.</div></div>
+    <div class="metric"><div class="label" style="color:#185FA5;">Protein gesamt</div><div class="value" style="color:#185FA5;">${totPAll.toFixed(1)} g</div><div class="sub">alle Port.</div></div>
+    <div class="metric"><div class="label" style="color:#854F0B;">KH gesamt</div><div class="value" style="color:#854F0B;">${totKAll.toFixed(1)} g</div><div class="sub">alle Port.</div></div>
+    <div class="metric"><div class="label" style="color:#993C1D;">Fett gesamt</div><div class="value" style="color:#993C1D;">${totFAll.toFixed(1)} g</div><div class="sub">alle Port.</div></div>`:''}`;
   document.getElementById('rc-macro-compare').innerHTML=`
-    <div class="macro-bar"><div class="macro-label"><span>Kalorien</span><span>${pKcal.toFixed(0)} / ${s.kcal} kcal (${pcK}%)</span></div><div class="macro-track"><div class="macro-fill" style="width:${pcK}%;background:${pcK>100?'#D85A30':'#1D9E75'};"></div></div></div>
-    <div class="macro-bar"><div class="macro-label"><span>Protein</span><span>${pP.toFixed(1)} / ${s.p} g (${pcP}%)</span></div><div class="macro-track"><div class="macro-fill" style="width:${pcP}%;background:#378ADD;"></div></div></div>
-    <div class="macro-bar"><div class="macro-label"><span>KH</span><span>${pK.toFixed(1)} / ${s.k} g (${pcKH}%)</span></div><div class="macro-track"><div class="macro-fill" style="width:${pcKH}%;background:#EF9F27;"></div></div></div>
-    <div class="macro-bar"><div class="macro-label"><span>Fett</span><span>${pF.toFixed(1)} / ${s.f} g (${pcF}%)</span></div><div class="macro-track"><div class="macro-fill" style="width:${pcF}%;background:#D85A30;"></div></div></div>`;
-  document.getElementById('rc-result-tbody').innerHTML=rows.map(r=>`<tr><td style="font-weight:600;">${r.name}</td><td>${r.amount} g</td><td>${r.kcal.toFixed(0)}</td><td>${r.p.toFixed(1)} g</td><td>${r.k.toFixed(1)} g</td><td>${r.f.toFixed(1)} g</td></tr>`).join('')+
-    `<tr style="border-top:1px solid #e0e0d8;font-weight:600;"><td>Gesamt</td><td>—</td><td>${totKcal.toFixed(0)}</td><td>${totP.toFixed(1)} g</td><td>${totK.toFixed(1)} g</td><td>${totF.toFixed(1)} g</td></tr>`;
+    <div class="macro-bar"><div class="macro-label"><span>Kalorien</span><span>${totKcal.toFixed(0)} / ${s.kcal} kcal (${pcK}% Tagesziel)</span></div><div class="macro-track"><div class="macro-fill" style="width:${pcK}%;background:${pcK>100?'#D85A30':'#1D9E75'};"></div></div></div>
+    <div class="macro-bar"><div class="macro-label"><span>Protein</span><span>${totP.toFixed(1)} / ${s.p} g (${pcP}%)</span></div><div class="macro-track"><div class="macro-fill" style="width:${pcP}%;background:#378ADD;"></div></div></div>
+    <div class="macro-bar"><div class="macro-label"><span>KH</span><span>${totK.toFixed(1)} / ${s.k} g (${pcKH}%)</span></div><div class="macro-track"><div class="macro-fill" style="width:${pcKH}%;background:#EF9F27;"></div></div></div>
+    <div class="macro-bar"><div class="macro-label"><span>Fett</span><span>${totF.toFixed(1)} / ${s.f} g (${pcF}%)</span></div><div class="macro-track"><div class="macro-fill" style="width:${pcF}%;background:#D85A30;"></div></div></div>`;
+  document.getElementById('rc-result-tbody').innerHTML=rows.map(r=>`
+    <tr>
+      <td style="font-weight:600;">${r.name}</td>
+      <td>${r.amount} g</td>
+      <td>${portions>1?'<strong>'+r.amount*portions+' g</strong>':'-'}</td>
+      <td>${r.kcal.toFixed(0)}</td><td>${r.p.toFixed(1)} g</td><td>${r.k.toFixed(1)} g</td><td>${r.f.toFixed(1)} g</td>
+    </tr>`).join('')+`
+    <tr style="border-top:1px solid #e0e0d8;font-weight:600;">
+      <td>Gesamt/Port.</td><td>—</td><td>${portions>1?'<strong>×'+portions+'</strong>':'-'}</td>
+      <td>${totKcal.toFixed(0)}</td><td>${totP.toFixed(1)} g</td><td>${totK.toFixed(1)} g</td><td>${totF.toFixed(1)} g</td>
+    </tr>`;
   document.getElementById('rc-result').style.display='block';
   document.getElementById('rc-save-btn').style.display='inline-flex';
   document.getElementById('rc-result').scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -1018,7 +1172,7 @@ function rcLoadRecipe(id){
   rcRenderIngredients();
   document.getElementById('rc-result').style.display='none';
   document.getElementById('rc-save-btn').style.display='none';
-  rcSetMode('calc');showToast('"'+r.name+'" geladen');
+  rcSetMode_unused=null;showToast('"'+r.name+'" geladen');
 }
 function rcClear(){
   rcIngredients=[];
@@ -1030,80 +1184,95 @@ function rcClear(){
   document.getElementById('rc-save-btn').style.display='none';
   rcRenderIngredients();
 }
+function toggleRecipeDropdown(id) {
+  const body = document.getElementById('rd-body-'+id);
+  const arrow = document.getElementById('rd-arrow-'+id);
+  if (!body) return;
+  body.classList.toggle('open');
+  arrow.classList.toggle('open');
+}
+
 function renderSavedRecipes(){
   const container=document.getElementById('saved-recipes-list');if(!container)return;
-  if(!db.recipes||!db.recipes.length){container.innerHTML='<div style="font-size:13px;color:#aaa;margin-bottom:1rem;">Noch keine Rezepte gespeichert — füge eins über den Button oben hinzu.</div>';return;}
-  container.innerHTML=db.recipes.map(r=>{
-    if(r.isTextRecipe && r.textData) {
-      const td=r.textData;
-      const tagColors={Protein:'protein',Kohlenhydrate:'kh',Fett:'fat',Vegetarisch:'kh',Vegan:'kh',Schnell:'protein','Meal Prep':'fat'};
-      const chips=(td.tags||[]).map(t=>`<span class="chip ${tagColors[t]||'protein'}">${t}</span>`).join('');
-      const meta=[td.category,td.time?'⏱ '+td.time:'',td.portions>1?td.portions+' Portionen':''].filter(Boolean).join(' · ');
-      return `<div class="recipe-card" style="margin-bottom:0.75rem;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
-          <div style="flex:1;">
-            <div class="recipe-title">${td.title}</div>
-            <div style="font-size:12px;color:#aaa;margin-bottom:6px;">${meta} · gespeichert am ${r.savedAt}</div>
-            ${chips?`<div class="recipe-meta" style="margin-bottom:8px;">${chips}</div>`:''}
-            <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Zutaten</div>
-            <div style="font-size:12px;color:#555;margin-bottom:8px;line-height:1.8;">${(td.ingredients||[]).map(i=>`<span style="display:inline-block;background:#f5f5f0;border-radius:6px;padding:2px 8px;margin:2px;">${i.amount?i.amount+' ':''}${i.name}</span>`).join('')}</div>
-            <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Zubereitung</div>
-            <div class="recipe-steps" style="font-size:12px;">${(td.steps||[]).map((s,i)=>`${i+1}. ${s}`).join('<br>')}</div>
-            ${td.tip?`<div style="margin-top:8px;font-size:12px;background:#FAEEDA;color:#854F0B;border-radius:8px;padding:6px 10px;">💡 ${td.tip}</div>`:''}
-          </div>
-          <button class="del-row" onclick="rcDeleteRecipe(${r.id})" title="Löschen" style="flex-shrink:0;">🗑</button>
-        </div>
-      </div>`;
+  if(!db.recipes||!db.recipes.length){
+    container.innerHTML='<div style="font-size:13px;color:#aaa;margin-bottom:1rem;">Noch keine Rezepte gespeichert — füge eins über den Button oben hinzu.</div>';return;
+  }
+
+  const tagColors={Protein:'protein',Kohlenhydrate:'kh',Fett:'fat',Vegetarisch:'kh',Vegan:'kh',Schnell:'protein','Meal Prep':'fat'};
+
+  // Sort alphabetically
+  const sorted = [...db.recipes].sort((a,b)=>a.name.localeCompare(b.name,'de'));
+
+  container.innerHTML = sorted.map(r => {
+    const td = r.textData;
+    const meta = td ? [td.category, td.time?'⏱ '+td.time:'', (r.portions||1)>1?(r.portions)+' Portionen':''].filter(Boolean).join(' · ') : (r.portions||1)+' Portion'+(r.portions>1?'en':'');
+    const chips = td ? (td.tags||[]).map(t=>`<span class="chip ${tagColors[t]||'protein'}">${t}</span>`).join('') : '';
+
+    // Build ingredients HTML
+    let ingHtml = '';
+    if(td && td.ingredients && td.ingredients.length) {
+      ingHtml = `<div style="font-size:12px;font-weight:600;color:#555;margin:10px 0 5px;">Zutaten</div>
+        <div style="margin-bottom:10px;">${td.ingredients.map(i=>`<span style="display:inline-block;background:#f5f5f0;border-radius:6px;padding:2px 8px;margin:2px;font-size:12px;">${i.amount?'<strong>'+i.amount+'</strong> ':''}${i.name}</span>`).join('')}</div>`;
+    } else if(r.ingredients && r.ingredients.length) {
+      // calculator recipe — show macros
+      let tK=0,tP=0,tKH=0,tF=0;
+      r.ingredients.forEach(ing=>{const food=db.foods.find(f=>f.id===ing.foodId);if(!food)return;const fac=ing.amount/100;tK+=food.kcal*fac;tP+=food.p*fac;tKH+=food.k*fac;tF+=food.f*fac;});
+      const por=r.portions||1;
+      ingHtml=`<div style="font-size:12px;font-weight:600;color:#555;margin:10px 0 5px;">Zutaten</div>
+        <div style="margin-bottom:6px;">${r.ingredients.map(i=>`<span style="display:inline-block;background:#f5f5f0;border-radius:6px;padding:2px 8px;margin:2px;font-size:12px;"><strong>${i.amount}g</strong> ${i.name}</span>`).join('')}</div>
+        <div style="display:flex;gap:10px;font-size:12px;margin-bottom:8px;">
+          <span style="color:#1D9E75;font-weight:600;">${(tK/por).toFixed(0)} kcal</span>
+          <span style="color:#185FA5;">P: ${(tP/por).toFixed(1)}g</span>
+          <span style="color:#854F0B;">KH: ${(tKH/por).toFixed(1)}g</span>
+          <span style="color:#993C1D;">F: ${(tF/por).toFixed(1)}g</span>
+          <span style="color:#aaa;">pro Portion</span>
+        </div>`;
     }
-    // Calculator recipe
-    let tK=0,tP=0,tKH=0,tF=0;
-    r.ingredients.forEach(ing=>{const food=db.foods.find(f=>f.id===ing.foodId);if(!food)return;const fac=ing.amount/100;tK+=food.kcal*fac;tP+=food.p*fac;tKH+=food.k*fac;tF+=food.f*fac;});
-    const pK=(tK/r.portions).toFixed(0),pP=(tP/r.portions).toFixed(1),pKH=(tKH/r.portions).toFixed(1),pF=(tF/r.portions).toFixed(1);
-    return `<div class="recipe-card" style="margin-bottom:0.75rem;">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-        <div>
-          <div class="recipe-title">🍽️ ${r.name}</div>
-          <div style="font-size:12px;color:#aaa;margin-bottom:6px;">${r.portions} Portion${r.portions>1?'en':''} · ${r.savedAt}</div>
-          <div style="font-size:12px;color:#888;margin-bottom:8px;">${r.ingredients.map(i=>i.name).join(', ')}</div>
-          <div style="display:flex;gap:10px;font-size:12px;flex-wrap:wrap;">
-            <span style="color:#1D9E75;font-weight:600;">${pK} kcal</span>
-            <span style="color:#185FA5;">P: ${pP}g</span>
-            <span style="color:#854F0B;">KH: ${pKH}g</span>
-            <span style="color:#993C1D;">F: ${pF}g</span>
-            <span style="color:#aaa;">pro Portion</span>
-          </div>
-        </div>
-        <div style="display:flex;gap:6px;flex-shrink:0;">
-          <button class="btn-sm" onclick="rcLoadRecipe(${r.id})">✏️ Laden</button>
-          <button class="del-row" onclick="rcDeleteRecipe(${r.id})">🗑</button>
+
+    // Steps HTML
+    const steps = td?.steps || [];
+    const stepsHtml = steps.length ? `<div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">Zubereitung</div>
+      <div>${steps.map((s,i)=>`<div style="display:flex;gap:8px;margin-bottom:5px;"><span style="min-width:18px;height:18px;background:#1D9E75;color:#fff;border-radius:50%;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${i+1}</span><span style="font-size:12px;color:#555;line-height:1.5;">${s}</span></div>`).join('')}</div>` : '';
+
+    const tipHtml = td?.tip ? `<div style="margin-top:10px;font-size:12px;background:#FAEEDA;color:#854F0B;border-radius:8px;padding:8px 10px;">💡 ${td.tip}</div>` : '';
+
+    return `<div class="recipe-dropdown">
+      <div class="recipe-dropdown-header" onclick="toggleRecipeDropdown(${r.id})">
+        <span class="recipe-dropdown-title">${r.name}</span>
+        <span class="recipe-dropdown-meta">${meta}</span>
+        <span class="recipe-dropdown-arrow" id="rd-arrow-${r.id}">▼</span>
+      </div>
+      <div class="recipe-dropdown-body" id="rd-body-${r.id}">
+        ${chips?`<div style="margin-top:10px;">${chips}</div>`:''}
+        ${ingHtml}
+        ${stepsHtml}
+        ${tipHtml}
+        <div class="recipe-dropdown-actions">
+          <button class="edit-row" onclick="rcEditRecipe(${r.id})" title="Bearbeiten">✏️ Bearbeiten</button>
+          <button class="del-row" onclick="rcDeleteRecipe(${r.id})" title="Löschen">🗑 Löschen</button>
         </div>
       </div>
     </div>`;
   }).join('');
 }
 
-// ── MODUS-WECHSEL ─────────────────────────────────────────────
-function rcSetMode(mode){
-  document.getElementById('rc-section-calc').style.display=mode==='calc'?'block':'none';
-  document.getElementById('rc-section-plan').style.display=mode==='plan'?'block':'none';
-  document.getElementById('rc-mode-calc').className=mode==='calc'?'add-btn':'btn-sm';
-  document.getElementById('rc-mode-plan').className=mode==='plan'?'add-btn':'btn-sm';
-  document.getElementById('rc-mode-calc').style.flex='1';
-  document.getElementById('rc-mode-plan').style.flex='1';
-  document.getElementById('rc-mode-plan').style.justifyContent='center';
-  if(mode==='plan')planInit();
+function rcUpdatePortions() {
+  const p = parseInt(document.getElementById('rc-portions').value)||1;
+  const hint = document.getElementById('rc-portions-hint');
+  if (hint) hint.textContent = p > 1 ? '(Mengen unten = pro Portion, Gesamtmenge = ×'+p+')' : '';
+  rcRenderIngredients();
 }
 
 // ── MENGEN-PLANER ─────────────────────────────────────────────
-let planSelectedMeal='wk2';
+let planSelectedMeal='2';
 let planSelectedFoods={protein:[],fat:[],kh:[]};
 function planGetTargets(key){
   const s=db.settings;
-  const n={wk2:s.mealsWeek||2,wk3:3,we2:2,we3:s.mealsWeekend||3}[key]||2;
+  const n=parseInt(key)||2;
   return{kcal:s.kcal/n,p:s.p/n,k:s.k/n,f:s.f/n,meals:n};
 }
 function planInit(){
-  ['wk2','wk3','we2','we3'].forEach(key=>{
+  ['2','3'].forEach(key=>{
     const t=planGetTargets(key);
     const el=document.getElementById('plan-'+key+'-label');
     if(el)el.textContent=t.kcal.toFixed(0)+' kcal · P:'+t.p.toFixed(0)+'g · KH:'+t.k.toFixed(0)+'g · F:'+t.f.toFixed(0)+'g';
@@ -1112,7 +1281,8 @@ function planInit(){
 }
 function planSetMeal(key,btn){
   planSelectedMeal=key;
-  document.querySelectorAll('#rc-section-plan .type-btn').forEach(b=>b.className='type-btn');
+  document.querySelectorAll('#plan-food-groups').forEach(()=>{});
+  document.querySelectorAll('[id^="plan-meal-"]').forEach(b=>b.className='type-btn');
   btn.className='type-btn selected-protein';planInit();
 }
 function planToggleFood(type,foodId,btn){
@@ -1144,6 +1314,7 @@ function planRenderFoodGroups(){
 function planCalculate(){
   const targets=planGetTargets(planSelectedMeal);
   const sel=planSelectedFoods;
+  const days=parseInt(document.getElementById('plan-days').value)||1;
   if(![...sel.protein,...sel.fat,...sel.kh].length){showToast('Bitte mindestens eine Zutat wählen');return;}
   const results=[];
   const addGroup=(ids,primaryKey,targetVal)=>{
@@ -1162,171 +1333,292 @@ function planCalculate(){
   const calcTot=(res)=>{let k=0,p=0,kh=0,f=0;res.forEach(r=>{const fac=r.grams/100;k+=r.food.kcal*fac;p+=r.food.p*fac;kh+=r.food.k*fac;f+=r.food.f*fac;});return{kcal:k,p,k:kh,f};};
   let tot=calcTot(results);
   if(tot.kcal>0){const sf=targets.kcal/tot.kcal;results.forEach(r=>r.grams=Math.max(5,Math.round(r.grams*sf)));}
-  tot=calcTot(results);
-  const ml={wk2:'Mo–Fr (2M)',wk3:'Mo–Fr (3M)',we2:'Sa & So (2M)',we3:'Sa & So (3M)'};
+  const ml={'2':'2 Mahlzeiten/Tag','3':'3 Mahlzeiten/Tag'};
+  const daysLabel=days>1?' · '+days+' Tage vorkochen':'';
   document.getElementById('plan-result-title').textContent='Dein Mahlzeit-Plan';
-  document.getElementById('plan-result-sub').textContent=ml[planSelectedMeal]+' · Ziel: '+targets.kcal.toFixed(0)+' kcal · P:'+targets.p.toFixed(0)+'g · KH:'+targets.k.toFixed(0)+'g · F:'+targets.f.toFixed(0)+'g';
-  document.getElementById('plan-result-metrics').innerHTML=`
-    <div class="metric"><div class="label">Kalorien</div><div class="value" style="color:${Math.abs(tot.kcal-targets.kcal)<30?'#1D9E75':'#D85A30'}">${tot.kcal.toFixed(0)}</div><div class="sub">Ziel: ${targets.kcal.toFixed(0)}</div></div>
-    <div class="metric"><div class="label" style="color:#185FA5;">Protein</div><div class="value" style="color:#185FA5;">${tot.p.toFixed(1)} g</div><div class="sub">Ziel: ${targets.p.toFixed(1)}</div></div>
-    <div class="metric"><div class="label" style="color:#854F0B;">KH</div><div class="value" style="color:#854F0B;">${tot.k.toFixed(1)} g</div><div class="sub">Ziel: ${targets.k.toFixed(1)}</div></div>
-    <div class="metric"><div class="label" style="color:#993C1D;">Fett</div><div class="value" style="color:#993C1D;">${tot.f.toFixed(1)} g</div><div class="sub">Ziel: ${targets.f.toFixed(1)}</div></div>`;
-  document.getElementById('plan-result-list').innerHTML=results.map(r=>{
-    const fac=r.grams/100;const tc=r.food.type==='protein'?'#185FA5':r.food.type==='fat'?'#993C1D':'#854F0B';
-    return`<div style="display:flex;align-items:center;gap:10px;background:#f5f5f0;border-radius:8px;padding:10px 12px;">
-      <div style="flex:1;"><div style="font-weight:600;font-size:13px;">${r.food.name}</div>
-      <div style="font-size:11px;color:#aaa;">${(r.food.kcal*fac).toFixed(0)} kcal · P:${(r.food.p*fac).toFixed(1)}g · KH:${(r.food.k*fac).toFixed(1)}g · F:${(r.food.f*fac).toFixed(1)}g</div></div>
-      <div style="font-size:22px;font-weight:600;color:${tc};min-width:64px;text-align:right;">${r.grams} g</div></div>`;
-  }).join('');
-  const pK=Math.min(100,Math.round(tot.kcal/targets.kcal*100)),pP=Math.min(100,Math.round(tot.p/targets.p*100)),pKH=Math.min(100,Math.round(tot.k/targets.k*100)),pF=Math.min(100,Math.round(tot.f/targets.f*100));
-  document.getElementById('plan-macro-compare').innerHTML=`
-    <div class="macro-bar"><div class="macro-label"><span>Kalorien</span><span>${tot.kcal.toFixed(0)} / ${targets.kcal.toFixed(0)} (${pK}%)</span></div><div class="macro-track"><div class="macro-fill" style="width:${pK}%;background:${pK>105?'#D85A30':'#1D9E75'};"></div></div></div>
-    <div class="macro-bar"><div class="macro-label"><span>Protein</span><span>${tot.p.toFixed(1)} / ${targets.p.toFixed(1)} g (${pP}%)</span></div><div class="macro-track"><div class="macro-fill" style="width:${pP}%;background:#378ADD;"></div></div></div>
-    <div class="macro-bar"><div class="macro-label"><span>KH</span><span>${tot.k.toFixed(1)} / ${targets.k.toFixed(1)} g (${pKH}%)</span></div><div class="macro-track"><div class="macro-fill" style="width:${pKH}%;background:#EF9F27;"></div></div></div>
-    <div class="macro-bar"><div class="macro-label"><span>Fett</span><span>${tot.f.toFixed(1)} / ${targets.f.toFixed(1)} g (${pF}%)</span></div><div class="macro-track"><div class="macro-fill" style="width:${pF}%;background:#D85A30;"></div></div></div>`;
+  document.getElementById('plan-result-sub').textContent=(ml[planSelectedMeal]||planSelectedMeal)+daysLabel+' · Max pro Mahlzeit: '+targets.kcal.toFixed(0)+' kcal · P:'+targets.p.toFixed(0)+'g · KH:'+targets.k.toFixed(0)+'g · F:'+targets.f.toFixed(0)+'g';
+  window._planLastResult={results,targets,mealKey:planSelectedMeal,days,originalGrams:results.map(r=>r.grams)};
+  planRenderEditable(results,targets,days);
   document.getElementById('plan-result').style.display='block';
   document.getElementById('plan-result').scrollIntoView({behavior:'smooth',block:'nearest'});
-  window._planLastResult={results,targets,mealKey:planSelectedMeal};
+}
+
+function planRenderEditable(results, targets, days=1) {
+  const typeColor=t=>t==='protein'?'#185FA5':t==='fat'?'#993C1D':'#854F0B';
+  const typeBg=t=>t==='protein'?'#E6F1FB':t==='fat'?'#FAECE7':'#FAEEDA';
+  const typeLabel=t=>t==='protein'?'Protein':t==='fat'?'Fett':'KH';
+
+  document.getElementById('plan-result-list').innerHTML = results.map((r,i) => {
+    const fac=r.grams/100;
+    const tc=typeColor(r.food.type), tbg=typeBg(r.food.type), tl=typeLabel(r.food.type);
+    const totalG=r.grams*days;
+    return `<div style="background:#f5f5f0;border-radius:10px;padding:10px 12px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${tbg};color:${tc};font-weight:600;">${tl}</span>
+        <span style="font-weight:600;font-size:13px;flex:1;">${r.food.name}</span>
+        ${days>1?`<span style="font-size:12px;color:#555;">Gesamt: <strong style="color:${tc};">${totalG} g</strong></span>`:''}
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="flex:1;">
+          <div style="font-size:11px;color:#aaa;" id="plan-item-info-${i}">${(r.food.kcal*fac).toFixed(0)} kcal · P:${(r.food.p*fac).toFixed(1)}g · KH:${(r.food.k*fac).toFixed(1)}g · F:${(r.food.f*fac).toFixed(1)}g pro Mahlzeit</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button onclick="planAdjust(${i},-5)" style="width:28px;height:28px;border-radius:50%;border:0.5px solid #d0d0c8;background:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#555;">−</button>
+          <input type="number" id="plan-gram-${i}" value="${r.grams}" min="5" max="2000" step="5"
+            onchange="planUpdateGram(${i},this.value)"
+            style="width:68px;text-align:center;font-size:15px;font-weight:600;color:${tc};padding:5px 6px;border:0.5px solid #d0d0c8;border-radius:8px;background:#fff;" />
+          <span style="font-size:13px;color:#888;">g</span>
+          <button onclick="planAdjust(${i},5)" style="width:28px;height:28px;border-radius:50%;border:0.5px solid #d0d0c8;background:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#555;">+</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  planUpdateLive(results, targets, days);
+}
+
+function planAdjust(idx, delta) {
+  const pr = window._planLastResult;
+  if (!pr) return;
+  const input = document.getElementById('plan-gram-'+idx);
+  const newVal = Math.max(5, (parseInt(input.value)||0) + delta);
+  input.value = newVal;
+  pr.results[idx].grams = newVal;
+  // update total display
+  planUpdateLive(pr.results, pr.targets, pr.days||1);
+  // update total label inline
+  const totalSpan = input.closest('div[style*="border-radius:10px"]')?.querySelector('strong');
+  if (totalSpan && pr.days>1) totalSpan.textContent = newVal*(pr.days||1)+' g';
+}
+
+function planUpdateGram(idx, val) {
+  const pr = window._planLastResult;
+  if (!pr) return;
+  pr.results[idx].grams = Math.max(5, parseInt(val)||5);
+  planUpdateLive(pr.results, pr.targets, pr.days||1);
+}
+
+function planUpdateLive(results, targets, days=1) {
+  results.forEach((r,i) => {
+    const fac=r.grams/100;
+    const el=document.getElementById('plan-item-info-'+i);
+    if(el) el.textContent=`${(r.food.kcal*fac).toFixed(0)} kcal · P:${(r.food.p*fac).toFixed(1)}g · KH:${(r.food.k*fac).toFixed(1)}g · F:${(r.food.f*fac).toFixed(1)}g pro Mahlzeit`;
+  });
+
+  let totKcal=0,totP=0,totK=0,totF=0;
+  results.forEach(r=>{const fac=r.grams/100;totKcal+=r.food.kcal*fac;totP+=r.food.p*fac;totK+=r.food.k*fac;totF+=r.food.f*fac;});
+
+  const over=(val,max)=>val>max*1.05;
+  const pctCapped=(val,max)=>Math.min(110,Math.round(val/max*100));
+  const barColor=(val,max)=>val>max*1.05?'#D85A30':val>max*0.9?'#1D9E75':'#EF9F27';
+
+  document.getElementById('plan-result-metrics').innerHTML=`
+    <div class="metric" style="background:${over(totKcal,targets.kcal)?'#FAECE7':'#f0f0ea'}">
+      <div class="label">Kcal/Mahlzeit</div>
+      <div class="value" style="color:${over(totKcal,targets.kcal)?'#D85A30':'#1D9E75'}">${totKcal.toFixed(0)}</div>
+      <div class="sub">Max: ${targets.kcal.toFixed(0)}</div>
+    </div>
+    <div class="metric" style="background:${over(totP,targets.p)?'#FAECE7':'#f0f0ea'}">
+      <div class="label" style="color:#185FA5;">Protein/M.</div>
+      <div class="value" style="color:${over(totP,targets.p)?'#D85A30':'#185FA5'}">${totP.toFixed(1)} g</div>
+      <div class="sub">Max: ${targets.p.toFixed(1)}</div>
+    </div>
+    <div class="metric" style="background:${over(totK,targets.k)?'#FAECE7':'#f0f0ea'}">
+      <div class="label" style="color:#854F0B;">KH/M.</div>
+      <div class="value" style="color:${over(totK,targets.k)?'#D85A30':'#854F0B'}">${totK.toFixed(1)} g</div>
+      <div class="sub">Max: ${targets.k.toFixed(1)}</div>
+    </div>
+    <div class="metric" style="background:${over(totF,targets.f)?'#FAECE7':'#f0f0ea'}">
+      <div class="label" style="color:#993C1D;">Fett/M.</div>
+      <div class="value" style="color:${over(totF,targets.f)?'#D85A30':'#993C1D'}">${totF.toFixed(1)} g</div>
+      <div class="sub">Max: ${targets.f.toFixed(1)}</div>
+    </div>
+    ${days>1?`
+    <div class="metric"><div class="label">Kcal gesamt</div><div class="value">${(totKcal*days).toFixed(0)}</div><div class="sub">${days} Tage</div></div>
+    <div class="metric"><div class="label" style="color:#185FA5;">Protein ges.</div><div class="value" style="color:#185FA5;">${(totP*days).toFixed(1)} g</div><div class="sub">${days} Tage</div></div>
+    <div class="metric"><div class="label" style="color:#854F0B;">KH gesamt</div><div class="value" style="color:#854F0B;">${(totK*days).toFixed(1)} g</div><div class="sub">${days} Tage</div></div>
+    <div class="metric"><div class="label" style="color:#993C1D;">Fett ges.</div><div class="value" style="color:#993C1D;">${(totF*days).toFixed(1)} g</div><div class="sub">${days} Tage</div></div>`:''}`;
+
+  document.getElementById('plan-macro-compare').innerHTML=`
+    <div class="macro-bar"><div class="macro-label"><span>Kalorien</span><span style="color:${over(totKcal,targets.kcal)?'#D85A30':'inherit'}">${totKcal.toFixed(0)} / ${targets.kcal.toFixed(0)} kcal (${pctCapped(totKcal,targets.kcal)}%)</span></div><div class="macro-track"><div class="macro-fill" style="width:${pctCapped(totKcal,targets.kcal)}%;background:${barColor(totKcal,targets.kcal)};"></div></div></div>
+    <div class="macro-bar"><div class="macro-label"><span>Protein</span><span style="color:${over(totP,targets.p)?'#D85A30':'inherit'}">${totP.toFixed(1)} / ${targets.p.toFixed(1)} g (${pctCapped(totP,targets.p)}%)</span></div><div class="macro-track"><div class="macro-fill" style="width:${pctCapped(totP,targets.p)}%;background:${barColor(totP,targets.p)};"></div></div></div>
+    <div class="macro-bar"><div class="macro-label"><span>KH</span><span style="color:${over(totK,targets.k)?'#D85A30':'inherit'}">${totK.toFixed(1)} / ${targets.k.toFixed(1)} g (${pctCapped(totK,targets.k)}%)</span></div><div class="macro-track"><div class="macro-fill" style="width:${pctCapped(totK,targets.k)}%;background:${barColor(totK,targets.k)};"></div></div></div>
+    <div class="macro-bar"><div class="macro-label"><span>Fett</span><span style="color:${over(totF,targets.f)?'#D85A30':'inherit'}">${totF.toFixed(1)} / ${targets.f.toFixed(1)} g (${pctCapped(totF,targets.f)}%)</span></div><div class="macro-track"><div class="macro-fill" style="width:${pctCapped(totF,targets.f)}%;background:${barColor(totF,targets.f)};"></div></div></div>`;
+}
+
+function planReset() {
+  const pr = window._planLastResult;
+  if (!pr || !pr.originalGrams) return;
+  pr.results.forEach((r,i) => {
+    r.grams = pr.originalGrams[i];
+    const inp = document.getElementById('plan-gram-'+i);
+    if (inp) inp.value = r.grams;
+  });
+  planUpdateLive(pr.results, pr.targets, pr.days||1);
+  showToast('Mengen zurückgesetzt');
 }
 async function planSaveAsRecipe(){
   const pr=window._planLastResult;if(!pr)return;
-  const name=prompt('Rezeptname:','Mahlzeit-Plan');if(!name)return;
+  // Open save modal with name + steps input
+  document.getElementById('plan-save-name').value='';
+  document.getElementById('plan-save-steps').value='';
+  document.getElementById('plan-save-modal').classList.add('show');
+}
+async function planConfirmSave(){
+  const pr=window._planLastResult;if(!pr)return;
+  const name=document.getElementById('plan-save-name').value.trim();
+  if(!name){showToast('Bitte Rezeptname eingeben');return;}
+  const stepsRaw=document.getElementById('plan-save-steps').value.trim();
+  const steps=stepsRaw?stepsRaw.split('\n').map(s=>s.replace(/^\d+[\.\)]\s*/,'').trim()).filter(Boolean):[];
   const ingredients=pr.results.map(r=>({foodId:r.food.id,name:r.food.name,amount:r.grams}));
-  const recipe={id:Date.now(),name,portions:1,ingredients,savedAt:new Date().toLocaleDateString('de-DE'),fromPlanner:true};
+  const recipe={
+    id:Date.now(),name,portions:1,ingredients,
+    savedAt:new Date().toLocaleDateString('de-DE'),
+    fromPlanner:true,
+    isTextRecipe: steps.length > 0,
+    textData: steps.length > 0 ? {
+      title:name, portions:1, time:'', category:'Mittag', tags:[], tip:'',
+      ingredients: pr.results.map(r=>({amount:r.grams+'g', name:r.food.name})),
+      steps
+    } : null
+  };
   if(!db.recipes)db.recipes=[];
   db.recipes.push(recipe);
-  await save('recipes');renderSavedRecipes();showToast('"'+name+'" gespeichert ✓');
+  await save('recipes');
+  renderSavedRecipes();
+  document.getElementById('plan-save-modal').classList.remove('show');
+  showToast('"'+name+'" gespeichert ✓');
 }
 function planClear(){planSelectedFoods={protein:[],fat:[],kh:[]};planRenderFoodGroups();document.getElementById('plan-result').style.display='none';}
 
 // ── TEXT-REZEPT ───────────────────────────────────────────────
-let trParsed = null;
+let trSelectedTags = [];
 
 function openTextRecipeModal() {
-  document.getElementById('tr-text').value = '';
-  document.getElementById('tr-preview').style.display = 'none';
-  document.getElementById('tr-loading').style.display = 'none';
-  document.getElementById('tr-save-btn').style.display = 'none';
-  document.getElementById('tr-format-btn').style.display = 'inline-flex';
-  trParsed = null;
+  document.getElementById('tr-name').value = '';
+  document.getElementById('tr-portions').value = '1';
+  document.getElementById('tr-category').value = 'Mittag';
+  document.getElementById('tr-time').value = '';
+  document.getElementById('tr-ingredients').value = '';
+  document.getElementById('tr-steps').value = '';
+  document.getElementById('tr-tip').value = '';
+  trSelectedTags = [];
+  document.querySelectorAll('#tr-tags-btns button').forEach(b => {
+    b.className = 'type-btn';
+    b.style.flex = 'none';
+    b.style.padding = '5px 12px';
+  });
   document.getElementById('text-recipe-modal').classList.add('show');
 }
+
 function closeTextRecipeModal() {
   document.getElementById('text-recipe-modal').classList.remove('show');
 }
 
-async function trFormat() {
-  const text = document.getElementById('tr-text').value.trim();
-  if (!text) { showToast('Bitte Rezepttext eingeben'); return; }
-  document.getElementById('tr-loading').style.display = 'block';
-  document.getElementById('tr-preview').style.display = 'none';
-  document.getElementById('tr-format-btn').style.display = 'none';
-  document.getElementById('tr-save-btn').style.display = 'none';
-
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: `Analysiere diesen Rezepttext und gib ihn als JSON zurück. Antworte NUR mit validem JSON, kein Text davor oder danach, keine Markdown-Backticks.
-
-Format:
-{
-  "title": "Rezeptname",
-  "portions": 2,
-  "time": "30 Min.",
-  "category": "Mittag",
-  "tags": ["Protein", "Kohlenhydrate"],
-  "ingredients": [
-    {"amount": "300g", "name": "Hähnchenbrust"}
-  ],
-  "steps": [
-    "Schritt 1 als ganzer Satz.",
-    "Schritt 2."
-  ],
-  "tip": "Optionaler Tipp (oder leer lassen)"
-}
-
-Für tags nur aus diesen wählen: Protein, Kohlenhydrate, Fett, Vegetarisch, Vegan, Schnell, Meal Prep
-Für category: Frühstück, Mittag, Abend, Snack
-
-Rezepttext:
-${text}`
-        }]
-      })
-    });
-    const data = await response.json();
-    const raw = data.content.map(i => i.text || '').join('');
-    const clean = raw.replace(/```json|```/g, '').trim();
-    trParsed = JSON.parse(clean);
-    trShowPreview(trParsed);
-  } catch(e) {
-    // Fallback: simple text parsing if API fails
-    trParsed = trSimpleParse(text);
-    trShowPreview(trParsed);
+function trToggleTag(btn, tag) {
+  const idx = trSelectedTags.indexOf(tag);
+  if (idx >= 0) {
+    trSelectedTags.splice(idx, 1);
+    btn.className = 'type-btn';
+  } else {
+    trSelectedTags.push(tag);
+    const colorMap = { Protein:'selected-protein', Kohlenhydrate:'selected-kh', Fett:'selected-fat', Vegetarisch:'selected-kh', Vegan:'selected-kh', Schnell:'selected-protein', 'Meal Prep':'selected-fat' };
+    btn.className = 'type-btn ' + (colorMap[tag] || 'selected-protein');
   }
-  document.getElementById('tr-loading').style.display = 'none';
+  btn.style.flex = 'none';
+  btn.style.padding = '5px 12px';
 }
 
-function trSimpleParse(text) {
-  const lines = text.split('\n').filter(l => l.trim());
-  const title = lines[0].replace(/^#+\s*/, '').trim();
-  const steps = [], ingredients = [];
-  let inSteps = false;
-  lines.slice(1).forEach(line => {
-    const l = line.trim();
-    if (!l) return;
-    if (/^\d+[\.\)]/.test(l)) { inSteps = true; steps.push(l.replace(/^\d+[\.\)]\s*/, '')); }
-    else if (/^[-*•]/.test(l)) { ingredients.push({ amount: '', name: l.replace(/^[-*•]\s*/, '') }); }
-    else if (!inSteps && ingredients.length === 0) { /* skip title */ }
-    else if (inSteps) { steps.push(l); }
-  });
-  return { title, portions: 1, time: '', category: 'Mittag', tags: [], ingredients, steps, tip: '' };
-}
+async function trSaveDirect() {
+  const name = document.getElementById('tr-name').value.trim();
+  if (!name) { showToast('Bitte Rezeptname eingeben'); return; }
+  const portions = parseInt(document.getElementById('tr-portions').value) || 1;
+  const category = document.getElementById('tr-category').value;
+  const time = document.getElementById('tr-time').value.trim();
+  const tip = document.getElementById('tr-tip').value.trim();
 
-function trShowPreview(r) {
-  const tagColors = { Protein:'protein', Kohlenhydrate:'kh', Fett:'fat', Vegetarisch:'kh', Vegan:'kh', Schnell:'protein', 'Meal Prep':'fat' };
-  const chips = (r.tags || []).map(t => `<span class="chip ${tagColors[t]||'protein'}">${t}</span>`).join('');
-  const meta = [r.category, r.time ? '⏱ '+r.time : '', r.portions > 1 ? r.portions+' Portionen' : ''].filter(Boolean).join(' · ');
-  document.getElementById('tr-preview-card').innerHTML = `
-    <div class="recipe-title">${r.title}</div>
-    <div style="font-size:12px;color:#aaa;margin-bottom:8px;">${meta}</div>
-    ${chips ? `<div class="recipe-meta">${chips}</div>` : ''}
-    <div style="font-size:12px;font-weight:600;color:#555;margin:10px 0 6px;">Zutaten</div>
-    <div style="font-size:13px;color:#555;margin-bottom:10px;line-height:1.8;">
-      ${(r.ingredients||[]).map(i => `<span style="display:inline-block;background:#f5f5f0;border-radius:6px;padding:2px 8px;margin:2px;font-size:12px;">${i.amount ? i.amount+' ' : ''}${i.name}</span>`).join('')}
-    </div>
-    <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">Zubereitung</div>
-    <div class="recipe-steps">${(r.steps||[]).map((s,i)=>`${i+1}. ${s}`).join('<br>')}</div>
-    ${r.tip ? `<div style="margin-top:10px;font-size:12px;background:#FAEEDA;color:#854F0B;border-radius:8px;padding:8px 10px;">💡 ${r.tip}</div>` : ''}
-  `;
-  document.getElementById('tr-preview').style.display = 'block';
-  document.getElementById('tr-save-btn').style.display = 'inline-flex';
-  document.getElementById('tr-format-btn').style.display = 'inline-flex';
-  document.getElementById('tr-format-btn').textContent = '↺ Neu formatieren';
-}
+  const ingRaw = document.getElementById('tr-ingredients').value.trim();
+  const ingredients = ingRaw ? ingRaw.split('\n').map(line => {
+    const l = line.trim(); if (!l) return null;
+    const m = l.match(/^([\d\/,\.\s]+(?:g|ml|kg|l|EL|TL|Stück|Pck|Bund|Zehe|Scheibe|Tasse|Handvoll|Dose)?\.?\s+)(.*)/i);
+    return m ? { amount: m[1].trim(), name: m[2].trim() } : { amount: '', name: l };
+  }).filter(Boolean) : [];
 
-async function trSave() {
-  if (!trParsed) return;
+  const stepsRaw = document.getElementById('tr-steps').value.trim();
+  const steps = stepsRaw ? stepsRaw.split('\n').map(s => s.replace(/^\d+[\.\)]\s*/, '').trim()).filter(Boolean) : [];
+
   const recipe = {
-    id: Date.now(),
-    name: trParsed.title,
-    portions: trParsed.portions || 1,
+    id: Date.now(), name, portions,
     ingredients: [],
     savedAt: new Date().toLocaleDateString('de-DE'),
     isTextRecipe: true,
-    textData: trParsed
+    textData: { title: name, portions, time, category, tags: [...trSelectedTags], tip, ingredients, steps }
   };
   if (!db.recipes) db.recipes = [];
   db.recipes.push(recipe);
   await save('recipes');
   renderSavedRecipes();
   closeTextRecipeModal();
-  showToast('"' + trParsed.title + '" gespeichert ✓');
+  showToast('"' + name + '" gespeichert ✓');
+}
+
+// ── REZEPT BEARBEITEN ─────────────────────────────────────────
+function rcEditRecipe(id) {
+  const r = db.recipes.find(r=>r.id===id);
+  if (!r) return;
+
+  // Fill modal
+  document.getElementById('re-id').value = id;
+  document.getElementById('re-name').value = r.name || '';
+  document.getElementById('re-portions').value = r.portions || 1;
+
+  // Steps — from textData if available
+  const steps = r.textData?.steps || [];
+  document.getElementById('re-steps').value = steps.join('\n');
+
+  // Tip
+  document.getElementById('re-tip').value = r.textData?.tip || '';
+
+  // Ingredients — show as text list for both types
+  if (r.isTextRecipe && r.textData?.ingredients) {
+    document.getElementById('re-ingredients').value = r.textData.ingredients.map(i=>(i.amount?i.amount+' ':'')+i.name).join('\n');
+  } else {
+    document.getElementById('re-ingredients').value = (r.ingredients||[]).map(i=>i.amount+'g '+i.name).join('\n');
+  }
+
+  document.getElementById('recipe-edit-modal').classList.add('show');
+}
+
+async function rcSaveEditedRecipe() {
+  const id = parseInt(document.getElementById('re-id').value);
+  const r = db.recipes.find(r=>r.id===id);
+  if (!r) return;
+
+  const name = document.getElementById('re-name').value.trim() || r.name;
+  const portions = parseInt(document.getElementById('re-portions').value)||1;
+  const stepsRaw = document.getElementById('re-steps').value.trim();
+  const steps = stepsRaw ? stepsRaw.split('\n').map(s=>s.replace(/^\d+[\.\)]\s*/,'').trim()).filter(Boolean) : [];
+  const tip = document.getElementById('re-tip').value.trim();
+  const ingRaw = document.getElementById('re-ingredients').value.trim();
+  const ingredients = ingRaw ? ingRaw.split('\n').map(line=>{
+    const l=line.trim(); if(!l) return null;
+    const m=l.match(/^([\d\/,\.\s]+(?:g|ml|kg|l|EL|TL|Stück|Pck|Bund|Zehe|Scheibe|Tasse|Handvoll|Dose)?\.?\s+)(.*)/i);
+    return m ? {amount:m[1].trim(), name:m[2].trim()} : {amount:'', name:l};
+  }).filter(Boolean) : [];
+
+  r.name = name;
+  r.portions = portions;
+  if (!r.textData) r.textData = {title:name,portions,time:'',category:'Mittag',tags:[],ingredients:[],steps:[],tip:''};
+  r.textData.title = name;
+  r.textData.portions = portions;
+  r.textData.steps = steps;
+  r.textData.tip = tip;
+  r.textData.ingredients = ingredients;
+  r.isTextRecipe = steps.length > 0 || ingredients.length > 0;
+
+  await save('recipes');
+  renderSavedRecipes();
+  document.getElementById('recipe-edit-modal').classList.remove('show');
+  showToast('"'+name+'" aktualisiert ✓');
 }
 
 loadAll();
