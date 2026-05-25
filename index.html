@@ -394,6 +394,9 @@ select { font-size: 13px; border: 0.5px solid #d0d0c8; background: #fff; color: 
       </div>
     </div>
     <div style="font-size:16px;font-weight:600;margin-bottom:1rem;margin-top:0.5rem;">Gespeicherte Rezepte</div>
+    <div style="margin-bottom:1rem;">
+      <button class="add-btn" onclick="openTextRecipeModal()" style="width:100%;justify-content:center;">📝 Rezept als Text hinzufügen</button>
+    </div>
     <div id="saved-recipes-list"></div>
     <div style="font-size:14px;font-weight:600;color:#888;margin:1.5rem 0 0.75rem;">Vorlagen</div>
     <div class="recipe-card">
@@ -423,6 +426,36 @@ select { font-size: 13px; border: 0.5px solid #d0d0c8; background: #fff; color: 
     <div class="modal-btns">
       <button class="btn-sm" onclick="closeEditModal()">Abbrechen</button>
       <button class="btn-sm green" onclick="saveEdit()">💾 Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="text-recipe-modal">
+  <div class="modal" style="max-width:560px;width:95%;">
+    <h3>📝 Rezept als Text eingeben</h3>
+    <p style="margin-bottom:12px;">Schreib das Rezept einfach so wie du möchtest — mit Zutaten, Mengen und Zubereitungsschritten. Die KI formatiert es automatisch.</p>
+    <div class="form-field" style="margin-bottom:12px;">
+      <label>Rezepttext</label>
+      <textarea id="tr-text" rows="8" placeholder="z.B.:
+Hähnchen-Bowl für 2 Personen
+- 300g Hähnchenbrust
+- 200g Reis
+- 1 Paprika
+- Sojasoße, Knoblauch, Ingwer
+
+Hähnchen würfeln und anbraten. Reis kochen. Paprika in Streifen schneiden und dazugeben. Mit Sojasoße, Knoblauch und Ingwer abschmecken." style="width:100%;padding:10px;border:0.5px solid #d0d0c8;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;"></textarea>
+    </div>
+    <div id="tr-loading" style="display:none;text-align:center;padding:1rem;color:#888;font-size:13px;">
+      <div style="margin-bottom:8px;">⏳ Rezept wird formatiert…</div>
+    </div>
+    <div id="tr-preview" style="display:none;">
+      <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px;">Vorschau</div>
+      <div class="recipe-card" style="margin-bottom:12px;" id="tr-preview-card"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-sm" onclick="closeTextRecipeModal()">Abbrechen</button>
+      <button class="btn-sm" onclick="trFormat()" id="tr-format-btn">✨ Formatieren</button>
+      <button class="btn-sm green" onclick="trSave()" id="tr-save-btn" style="display:none;">💾 Speichern</button>
     </div>
   </div>
 </div>
@@ -999,8 +1032,30 @@ function rcClear(){
 }
 function renderSavedRecipes(){
   const container=document.getElementById('saved-recipes-list');if(!container)return;
-  if(!db.recipes||!db.recipes.length){container.innerHTML='<div style="font-size:13px;color:#aaa;margin-bottom:1rem;">Noch keine Rezepte gespeichert</div>';return;}
+  if(!db.recipes||!db.recipes.length){container.innerHTML='<div style="font-size:13px;color:#aaa;margin-bottom:1rem;">Noch keine Rezepte gespeichert — füge eins über den Button oben hinzu.</div>';return;}
   container.innerHTML=db.recipes.map(r=>{
+    if(r.isTextRecipe && r.textData) {
+      const td=r.textData;
+      const tagColors={Protein:'protein',Kohlenhydrate:'kh',Fett:'fat',Vegetarisch:'kh',Vegan:'kh',Schnell:'protein','Meal Prep':'fat'};
+      const chips=(td.tags||[]).map(t=>`<span class="chip ${tagColors[t]||'protein'}">${t}</span>`).join('');
+      const meta=[td.category,td.time?'⏱ '+td.time:'',td.portions>1?td.portions+' Portionen':''].filter(Boolean).join(' · ');
+      return `<div class="recipe-card" style="margin-bottom:0.75rem;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
+          <div style="flex:1;">
+            <div class="recipe-title">${td.title}</div>
+            <div style="font-size:12px;color:#aaa;margin-bottom:6px;">${meta} · gespeichert am ${r.savedAt}</div>
+            ${chips?`<div class="recipe-meta" style="margin-bottom:8px;">${chips}</div>`:''}
+            <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Zutaten</div>
+            <div style="font-size:12px;color:#555;margin-bottom:8px;line-height:1.8;">${(td.ingredients||[]).map(i=>`<span style="display:inline-block;background:#f5f5f0;border-radius:6px;padding:2px 8px;margin:2px;">${i.amount?i.amount+' ':''}${i.name}</span>`).join('')}</div>
+            <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Zubereitung</div>
+            <div class="recipe-steps" style="font-size:12px;">${(td.steps||[]).map((s,i)=>`${i+1}. ${s}`).join('<br>')}</div>
+            ${td.tip?`<div style="margin-top:8px;font-size:12px;background:#FAEEDA;color:#854F0B;border-radius:8px;padding:6px 10px;">💡 ${td.tip}</div>`:''}
+          </div>
+          <button class="del-row" onclick="rcDeleteRecipe(${r.id})" title="Löschen" style="flex-shrink:0;">🗑</button>
+        </div>
+      </div>`;
+    }
+    // Calculator recipe
     let tK=0,tP=0,tKH=0,tF=0;
     r.ingredients.forEach(ing=>{const food=db.foods.find(f=>f.id===ing.foodId);if(!food)return;const fac=ing.amount/100;tK+=food.kcal*fac;tP+=food.p*fac;tKH+=food.k*fac;tF+=food.f*fac;});
     const pK=(tK/r.portions).toFixed(0),pP=(tP/r.portions).toFixed(1),pKH=(tKH/r.portions).toFixed(1),pF=(tF/r.portions).toFixed(1);
@@ -1143,6 +1198,136 @@ async function planSaveAsRecipe(){
   await save('recipes');renderSavedRecipes();showToast('"'+name+'" gespeichert ✓');
 }
 function planClear(){planSelectedFoods={protein:[],fat:[],kh:[]};planRenderFoodGroups();document.getElementById('plan-result').style.display='none';}
+
+// ── TEXT-REZEPT ───────────────────────────────────────────────
+let trParsed = null;
+
+function openTextRecipeModal() {
+  document.getElementById('tr-text').value = '';
+  document.getElementById('tr-preview').style.display = 'none';
+  document.getElementById('tr-loading').style.display = 'none';
+  document.getElementById('tr-save-btn').style.display = 'none';
+  document.getElementById('tr-format-btn').style.display = 'inline-flex';
+  trParsed = null;
+  document.getElementById('text-recipe-modal').classList.add('show');
+}
+function closeTextRecipeModal() {
+  document.getElementById('text-recipe-modal').classList.remove('show');
+}
+
+async function trFormat() {
+  const text = document.getElementById('tr-text').value.trim();
+  if (!text) { showToast('Bitte Rezepttext eingeben'); return; }
+  document.getElementById('tr-loading').style.display = 'block';
+  document.getElementById('tr-preview').style.display = 'none';
+  document.getElementById('tr-format-btn').style.display = 'none';
+  document.getElementById('tr-save-btn').style.display = 'none';
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `Analysiere diesen Rezepttext und gib ihn als JSON zurück. Antworte NUR mit validem JSON, kein Text davor oder danach, keine Markdown-Backticks.
+
+Format:
+{
+  "title": "Rezeptname",
+  "portions": 2,
+  "time": "30 Min.",
+  "category": "Mittag",
+  "tags": ["Protein", "Kohlenhydrate"],
+  "ingredients": [
+    {"amount": "300g", "name": "Hähnchenbrust"}
+  ],
+  "steps": [
+    "Schritt 1 als ganzer Satz.",
+    "Schritt 2."
+  ],
+  "tip": "Optionaler Tipp (oder leer lassen)"
+}
+
+Für tags nur aus diesen wählen: Protein, Kohlenhydrate, Fett, Vegetarisch, Vegan, Schnell, Meal Prep
+Für category: Frühstück, Mittag, Abend, Snack
+
+Rezepttext:
+${text}`
+        }]
+      })
+    });
+    const data = await response.json();
+    const raw = data.content.map(i => i.text || '').join('');
+    const clean = raw.replace(/```json|```/g, '').trim();
+    trParsed = JSON.parse(clean);
+    trShowPreview(trParsed);
+  } catch(e) {
+    // Fallback: simple text parsing if API fails
+    trParsed = trSimpleParse(text);
+    trShowPreview(trParsed);
+  }
+  document.getElementById('tr-loading').style.display = 'none';
+}
+
+function trSimpleParse(text) {
+  const lines = text.split('\n').filter(l => l.trim());
+  const title = lines[0].replace(/^#+\s*/, '').trim();
+  const steps = [], ingredients = [];
+  let inSteps = false;
+  lines.slice(1).forEach(line => {
+    const l = line.trim();
+    if (!l) return;
+    if (/^\d+[\.\)]/.test(l)) { inSteps = true; steps.push(l.replace(/^\d+[\.\)]\s*/, '')); }
+    else if (/^[-*•]/.test(l)) { ingredients.push({ amount: '', name: l.replace(/^[-*•]\s*/, '') }); }
+    else if (!inSteps && ingredients.length === 0) { /* skip title */ }
+    else if (inSteps) { steps.push(l); }
+  });
+  return { title, portions: 1, time: '', category: 'Mittag', tags: [], ingredients, steps, tip: '' };
+}
+
+function trShowPreview(r) {
+  const tagColors = { Protein:'protein', Kohlenhydrate:'kh', Fett:'fat', Vegetarisch:'kh', Vegan:'kh', Schnell:'protein', 'Meal Prep':'fat' };
+  const chips = (r.tags || []).map(t => `<span class="chip ${tagColors[t]||'protein'}">${t}</span>`).join('');
+  const meta = [r.category, r.time ? '⏱ '+r.time : '', r.portions > 1 ? r.portions+' Portionen' : ''].filter(Boolean).join(' · ');
+  document.getElementById('tr-preview-card').innerHTML = `
+    <div class="recipe-title">${r.title}</div>
+    <div style="font-size:12px;color:#aaa;margin-bottom:8px;">${meta}</div>
+    ${chips ? `<div class="recipe-meta">${chips}</div>` : ''}
+    <div style="font-size:12px;font-weight:600;color:#555;margin:10px 0 6px;">Zutaten</div>
+    <div style="font-size:13px;color:#555;margin-bottom:10px;line-height:1.8;">
+      ${(r.ingredients||[]).map(i => `<span style="display:inline-block;background:#f5f5f0;border-radius:6px;padding:2px 8px;margin:2px;font-size:12px;">${i.amount ? i.amount+' ' : ''}${i.name}</span>`).join('')}
+    </div>
+    <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">Zubereitung</div>
+    <div class="recipe-steps">${(r.steps||[]).map((s,i)=>`${i+1}. ${s}`).join('<br>')}</div>
+    ${r.tip ? `<div style="margin-top:10px;font-size:12px;background:#FAEEDA;color:#854F0B;border-radius:8px;padding:8px 10px;">💡 ${r.tip}</div>` : ''}
+  `;
+  document.getElementById('tr-preview').style.display = 'block';
+  document.getElementById('tr-save-btn').style.display = 'inline-flex';
+  document.getElementById('tr-format-btn').style.display = 'inline-flex';
+  document.getElementById('tr-format-btn').textContent = '↺ Neu formatieren';
+}
+
+async function trSave() {
+  if (!trParsed) return;
+  const recipe = {
+    id: Date.now(),
+    name: trParsed.title,
+    portions: trParsed.portions || 1,
+    ingredients: [],
+    savedAt: new Date().toLocaleDateString('de-DE'),
+    isTextRecipe: true,
+    textData: trParsed
+  };
+  if (!db.recipes) db.recipes = [];
+  db.recipes.push(recipe);
+  await save('recipes');
+  renderSavedRecipes();
+  closeTextRecipeModal();
+  showToast('"' + trParsed.title + '" gespeichert ✓');
+}
 
 loadAll();
 </script>
