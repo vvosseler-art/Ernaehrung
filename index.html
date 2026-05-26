@@ -126,15 +126,41 @@ select { font-size: 13px; border: 0.5px solid #d0d0c8; background: #fff; color: 
   .container { padding: 12px; }
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
 }
+.login-screen { position: fixed; inset: 0; background: #f5f5f0; display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.login-card { background: #fff; border-radius: 20px; padding: 2rem; max-width: 360px; width: 90%; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+.login-card h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+.login-card p { font-size: 14px; color: #888; margin-bottom: 1.5rem; }
+.login-btns { display: flex; flex-direction: column; gap: 10px; }
+.login-btn { padding: 14px; border-radius: 12px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; transition: all .15s; }
+.login-btn.vanessa { background: #1D9E75; color: #fff; }
+.login-btn.vanessa:hover { background: #0F6E56; }
+.login-btn.markus { background: #378ADD; color: #fff; }
+.login-btn.markus:hover { background: #1a5fa8; }
+.user-badge { font-size: 11px; padding: 3px 10px; border-radius: 10px; font-weight: 600; cursor: pointer; }
+.user-badge.vanessa { background: #E6F7F2; color: #0F6E56; }
+.user-badge.markus { background: #E6F1FB; color: #185FA5; }
 </style>
 </head>
 <body>
+<div class="login-screen" id="login-screen">
+  <div class="login-card">
+    <div style="font-size:40px;margin-bottom:12px;">🥗</div>
+    <h2>Ernährungscoaching</h2>
+    <p>Wer bist du?</p>
+    <div class="login-btns">
+      <button class="login-btn vanessa" onclick="setUser('vanessa')">👩 Vanessa</button>
+      <button class="login-btn markus" onclick="setUser('markus')">👨 Markus</button>
+    </div>
+  </div>
+</div>
+
 <div class="topbar">
   <div class="topbar-left">
     <span class="topbar-title">Ernährungscoaching</span>
     <span class="topbar-sub" id="topbar-sub">Zielgewicht: 65 kg · 1523 kcal/Tag</span>
   </div>
   <div class="topbar-right">
+    <span class="user-badge" id="user-badge" onclick="switchUser()" title="Benutzer wechseln"></span>
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
       <span id="db-label">Verbinde…</span>
@@ -267,16 +293,6 @@ select { font-size: 13px; border: 0.5px solid #d0d0c8; background: #fff; color: 
         <div class="form-field"><label>Kohlenhydrate (g)</label><input type="number" id="set-k" placeholder="105" min="0" /></div>
         <div class="form-field"><label>Fett (g)</label><input type="number" id="set-f" placeholder="59" min="0" /></div>
         <div class="form-field"><label>Zielgewicht (kg)</label><input type="number" id="set-ziel" placeholder="65" step="0.1" /></div>
-        <div class="form-field"><label>Mahlzeiten Mo–Fr</label>
-          <select id="set-meals-week" style="padding:8px 10px;border:0.5px solid #d0d0c8;border-radius:8px;">
-            <option value="2">2 Mahlzeiten</option><option value="3">3 Mahlzeiten</option>
-          </select>
-        </div>
-        <div class="form-field"><label>Mahlzeiten Sa & So</label>
-          <select id="set-meals-weekend" style="padding:8px 10px;border:0.5px solid #d0d0c8;border-radius:8px;">
-            <option value="2">2 Mahlzeiten</option><option value="3" selected>3 Mahlzeiten</option>
-          </select>
-        </div>
       </div>
       <button class="add-btn" onclick="saveSettings()">💾 Zielwerte speichern</button>
     </div>
@@ -285,18 +301,6 @@ select { font-size: 13px; border: 0.5px solid #d0d0c8; background: #fff; color: 
       <div class="metric"><div class="label" style="color:#185FA5;">Protein</div><div class="value" id="m-p-val" style="color:#185FA5;">— g</div><div class="sub" id="m-p-pct">—</div></div>
       <div class="metric"><div class="label" style="color:#854F0B;">Kohlenhydrate</div><div class="value" id="m-k-val" style="color:#854F0B;">— g</div><div class="sub" id="m-k-pct">—</div></div>
       <div class="metric"><div class="label" style="color:#993C1D;">Fett</div><div class="value" id="m-f-val" style="color:#993C1D;">— g</div><div class="sub" id="m-f-pct">—</div></div>
-    </div>
-    <div class="card"><h3 id="macro-week-title">Mo–Fr — pro Mahlzeit</h3>
-      <div class="macro-bar"><div class="macro-label"><span>Kalorien</span><span id="mw-kcal">—</span></div><div class="macro-track"><div class="macro-fill" id="mw-kcal-bar" style="width:100%;background:#1D9E75;"></div></div></div>
-      <div class="macro-bar"><div class="macro-label"><span>Protein</span><span id="mw-p">—</span></div><div class="macro-track"><div class="macro-fill" id="mw-p-bar" style="background:#378ADD;"></div></div></div>
-      <div class="macro-bar"><div class="macro-label"><span>Kohlenhydrate</span><span id="mw-k">—</span></div><div class="macro-track"><div class="macro-fill" id="mw-k-bar" style="background:#EF9F27;"></div></div></div>
-      <div class="macro-bar"><div class="macro-label"><span>Fett</span><span id="mw-f">—</span></div><div class="macro-track"><div class="macro-fill" id="mw-f-bar" style="background:#D85A30;"></div></div></div>
-    </div>
-    <div class="card"><h3 id="macro-weekend-title">Sa & So — pro Mahlzeit</h3>
-      <div class="macro-bar"><div class="macro-label"><span>Kalorien</span><span id="mwe-kcal">—</span></div><div class="macro-track"><div class="macro-fill" id="mwe-kcal-bar" style="width:100%;background:#1D9E75;"></div></div></div>
-      <div class="macro-bar"><div class="macro-label"><span>Protein</span><span id="mwe-p">—</span></div><div class="macro-track"><div class="macro-fill" id="mwe-p-bar" style="background:#378ADD;"></div></div></div>
-      <div class="macro-bar"><div class="macro-label"><span>Kohlenhydrate</span><span id="mwe-k">—</span></div><div class="macro-track"><div class="macro-fill" id="mwe-k-bar" style="background:#EF9F27;"></div></div></div>
-      <div class="macro-bar"><div class="macro-label"><span>Fett</span><span id="mwe-f">—</span></div><div class="macro-track"><div class="macro-fill" id="mwe-f-bar" style="background:#D85A30;"></div></div></div>
     </div>
   </div>
 
@@ -457,15 +461,6 @@ select { font-size: 13px; border: 0.5px solid #d0d0c8; background: #fff; color: 
           <input type="number" id="tr-portions" value="1" min="1" max="30" />
         </div>
         <div class="form-field">
-          <label>Kategorie</label>
-          <select id="tr-category" style="padding:8px 10px;border:0.5px solid #d0d0c8;border-radius:8px;width:100%;">
-            <option value="Mittag">Mittag</option>
-            <option value="Frühstück">Frühstück</option>
-            <option value="Abend">Abend</option>
-            <option value="Snack">Snack</option>
-          </select>
-        </div>
-        <div class="form-field">
           <label>Zubereitungszeit</label>
           <input type="text" id="tr-time" placeholder="z.B. 30 Min." />
         </div>
@@ -588,6 +583,41 @@ async function sbSet(key, value) {
 // ── DB STATE ──────────────────────────────────────────────────
 const DEFAULT_SETTINGS = { kcal:1523, p:132, k:105, f:59, ziel:65, mealsWeek:2, mealsWeekend:3 };
 
+const VANESSA_DEFAULT_WEIGHT = [
+  {year:2025, kw:'KW 31', kg:67.4, note:'', date:'2025-07-28'},
+  {year:2025, kw:'KW 32', kg:66.5, note:'', date:'2025-08-04'},
+  {year:2025, kw:'KW 33', kg:66.0, note:'', date:'2025-08-11'},
+  {year:2025, kw:'KW 34', kg:66.0, note:'', date:'2025-08-18'},
+  {year:2025, kw:'KW 35', kg:65.1, note:'', date:'2025-08-25'},
+  {year:2025, kw:'KW 36', kg:64.5, note:'', date:'2025-09-01'},
+  {year:2025, kw:'KW 37', kg:64.1, note:'', date:'2025-09-08'},
+  {year:2025, kw:'KW 38', kg:64.6, note:'', date:'2025-09-15'},
+];
+
+const VANESSA_DEFAULT_MASS = [
+  {year:2025, kw:'KW 13', date:'2025-03-26', brust:98,   taille:80,   bauch:95,   huefte:103, ober:61},
+  {year:2025, kw:'KW 15', date:'2025-04-09', brust:91,   taille:78,   bauch:92.5, huefte:103, ober:61},
+  {year:2025, kw:'KW 31', date:'2025-08-03', brust:94,   taille:80,   bauch:95,   huefte:103, ober:62},
+  {year:2025, kw:'KW 33', date:'2025-08-17', brust:93,   taille:76,   bauch:93,   huefte:102, ober:60},
+  {year:2025, kw:'KW 34', date:'2025-08-22', brust:93,   taille:75,   bauch:92,   huefte:102, ober:60},
+  {year:2025, kw:'KW 35', date:'2025-08-29', brust:92,   taille:73,   bauch:90,   huefte:102, ober:60},
+  {year:2025, kw:'KW 36', date:'2025-09-06', brust:93,   taille:72,   bauch:89,   huefte:100, ober:59},
+  {year:2025, kw:'KW 37', date:'2025-09-12', brust:93,   taille:71,   bauch:87,   huefte:100, ober:59},
+  {year:2025, kw:'KW 38', date:'2025-09-20', brust:95,   taille:71,   bauch:87,   huefte:100, ober:59},
+  {year:2025, kw:'KW 40', date:'2025-10-03', brust:94,   taille:73,   bauch:89,   huefte:99,  ober:58},
+  {year:2025, kw:'KW 42', date:'2025-10-18', brust:96,   taille:74,   bauch:89,   huefte:101, ober:59},
+  {year:2025, kw:'KW 44', date:'2025-10-29', brust:94,   taille:74,   bauch:89,   huefte:99,  ober:59},
+  {year:2025, kw:'KW 45', date:'2025-11-04', brust:93,   taille:74,   bauch:89,   huefte:101, ober:60},
+  {year:2025, kw:'KW 48', date:'2025-11-27', brust:94,   taille:72,   bauch:87,   huefte:100, ober:59},
+  {year:2025, kw:'KW 50', date:'2025-12-12', brust:95,   taille:74,   bauch:89,   huefte:100, ober:59},
+  {year:2025, kw:'KW 52', date:'2025-12-24', brust:95,   taille:73,   bauch:88,   huefte:101, ober:59},
+  {year:2026, kw:'KW 2',  date:'2026-01-06', brust:96,   taille:75,   bauch:93,   huefte:102, ober:60},
+  {year:2026, kw:'KW 7',  date:'2026-02-11', brust:96,   taille:73,   bauch:88,   huefte:101, ober:65},
+  {year:2026, kw:'KW 11', date:'2026-03-11', brust:95,   taille:75,   bauch:92,   huefte:100, ober:59},
+  {year:2026, kw:'KW 12', date:'2026-03-19', brust:94,   taille:74,   bauch:90,   huefte:101, ober:60},
+  {year:2026, kw:'KW 14', date:'2026-04-04', brust:95,   taille:74,   bauch:90,   huefte:103, ober:60},
+];
+
 const DEFAULT_RECIPES = [{
   id: 1, name: 'Yakisoba — Japanische Gebratene Nudeln', portions: 2,
   ingredients: [], savedAt: '01.01.2025', isTextRecipe: true,
@@ -648,6 +678,32 @@ let db = { weight:[], mass:[], score:[], foods:[], settings:{...DEFAULT_SETTINGS
 let nextFoodId = 200;
 let selectedType = null;
 let charts = {};
+let currentUser = null; // 'vanessa' or 'markus'
+
+// Keys that are personal (per user) vs shared (both users)
+const SHARED_KEYS = ['foods', 'recipes'];
+const PERSONAL_KEYS = ['weight', 'mass', 'score', 'settings'];
+
+function userKey(key) {
+  return SHARED_KEYS.includes(key) ? key : currentUser + '_' + key;
+}
+
+function setUser(user) {
+  currentUser = user;
+  localStorage.setItem('ec_user', user);
+  document.getElementById('login-screen').style.display = 'none';
+  const badge = document.getElementById('user-badge');
+  badge.textContent = user === 'vanessa' ? '👩 Vanessa' : '👨 Markus';
+  badge.className = 'user-badge ' + user;
+  loadAll();
+}
+
+function switchUser() {
+  if (!confirm('Benutzer wechseln?')) return;
+  currentUser = null;
+  db = { weight:[], mass:[], score:[], foods:[], settings:{...DEFAULT_SETTINGS}, recipes:[] };
+  document.getElementById('login-screen').style.display = 'flex';
+}
 
 // ── SAVE / LOAD ───────────────────────────────────────────────
 function setDbStatus(state, text) {
@@ -658,7 +714,7 @@ function setDbStatus(state, text) {
 async function save(key) {
   setDbStatus('saving', 'Speichern…');
   const val = key === 'settings' ? db.settings : db[key];
-  const ok = await sbSet(key, val);
+  const ok = await sbSet(userKey(key), val);
   if (ok) {
     const total = db.weight.length + db.mass.length + db.score.length + db.foods.length;
     setDbStatus('ok', total + ' Datensätze gespeichert');
@@ -671,8 +727,8 @@ async function loadAll() {
   setDbStatus('saving', 'Lade Daten…');
   try {
     const [weight, mass, score, foods, settings, recipes] = await Promise.all([
-      sbGet('weight'), sbGet('mass'), sbGet('score'),
-      sbGet('foods'), sbGet('settings'), sbGet('recipes')
+      sbGet(userKey('weight')), sbGet(userKey('mass')), sbGet(userKey('score')),
+      sbGet(userKey('foods')), sbGet(userKey('settings')), sbGet(userKey('recipes'))
     ]);
     if (weight)   db.weight   = weight;
     if (mass)     db.mass     = mass;
@@ -682,6 +738,14 @@ async function loadAll() {
     if (recipes)  db.recipes  = recipes;
     if (!db.foods.length)   db.foods   = JSON.parse(JSON.stringify(DEFAULT_FOODS));
     if (!db.recipes.length) db.recipes = JSON.parse(JSON.stringify(DEFAULT_RECIPES));
+    if (!db.weight.length && currentUser === 'vanessa') {
+      db.weight = JSON.parse(JSON.stringify(VANESSA_DEFAULT_WEIGHT));
+      await sbSet(userKey('weight'), db.weight);
+    }
+    if (!db.mass.length && currentUser === 'vanessa') {
+      db.mass = JSON.parse(JSON.stringify(VANESSA_DEFAULT_MASS));
+      await sbSet(userKey('mass'), db.mass);
+    }
     nextFoodId = db.foods.length ? Math.max(...db.foods.map(f=>f.id)) + 1 : 200;
     const total = db.weight.length + db.mass.length + db.score.length + db.foods.length;
     setDbStatus('ok', total + ' Datensätze geladen');
@@ -967,8 +1031,6 @@ async function saveSettings(){
   s.k=parseFloat(document.getElementById('set-k').value)||s.k;
   s.f=parseFloat(document.getElementById('set-f').value)||s.f;
   s.ziel=parseFloat(document.getElementById('set-ziel').value)||s.ziel;
-  s.mealsWeek=parseInt(document.getElementById('set-meals-week').value)||2;
-  s.mealsWeekend=parseInt(document.getElementById('set-meals-weekend').value)||3;
   await save('settings');renderMacros();updateDashboard();showToast('Zielwerte gespeichert ✓');
 }
 function renderMacros(){
@@ -979,28 +1041,9 @@ function renderMacros(){
   document.getElementById('m-p-val').textContent=s.p+' g'; document.getElementById('m-p-pct').textContent=pP+'%';
   document.getElementById('m-k-val').textContent=s.k+' g'; document.getElementById('m-k-pct').textContent=pK+'%';
   document.getElementById('m-f-val').textContent=s.f+' g'; document.getElementById('m-f-pct').textContent=pF+'%';
-  const wm=s.mealsWeek,wem=s.mealsWeekend;
-  document.getElementById('macro-week-title').textContent='Mo–Fr ('+wm+' Mahlzeiten) — pro Mahlzeit';
-  document.getElementById('mw-kcal').textContent=(s.kcal/wm).toFixed(0)+' kcal';
-  document.getElementById('mw-p').textContent=(s.p/wm).toFixed(1)+' g';
-  document.getElementById('mw-k').textContent=(s.k/wm).toFixed(1)+' g';
-  document.getElementById('mw-f').textContent=(s.f/wm).toFixed(1)+' g';
-  document.getElementById('mw-p-bar').style.width=pP+'%';
-  document.getElementById('mw-k-bar').style.width=pK+'%';
-  document.getElementById('mw-f-bar').style.width=pF+'%';
-  document.getElementById('macro-weekend-title').textContent='Sa & So ('+wem+' Mahlzeiten) — pro Mahlzeit';
-  document.getElementById('mwe-kcal').textContent=(s.kcal/wem).toFixed(0)+' kcal';
-  document.getElementById('mwe-p').textContent=(s.p/wem).toFixed(1)+' g';
-  document.getElementById('mwe-k').textContent=(s.k/wem).toFixed(1)+' g';
-  document.getElementById('mwe-f').textContent=(s.f/wem).toFixed(1)+' g';
-  document.getElementById('mwe-p-bar').style.width=pP+'%';
-  document.getElementById('mwe-k-bar').style.width=pK+'%';
-  document.getElementById('mwe-f-bar').style.width=pF+'%';
   document.getElementById('set-kcal').value=s.kcal; document.getElementById('set-p').value=s.p;
   document.getElementById('set-k').value=s.k; document.getElementById('set-f').value=s.f;
   document.getElementById('set-ziel').value=s.ziel;
-  document.getElementById('set-meals-week').value=s.mealsWeek;
-  document.getElementById('set-meals-weekend').value=s.mealsWeekend;
   document.getElementById('topbar-sub').textContent='Zielgewicht: '+s.ziel+' kg · '+s.kcal+' kcal/Tag';
 }
 
@@ -1205,7 +1248,7 @@ function renderSavedRecipes(){
 
   container.innerHTML = sorted.map(r => {
     const td = r.textData;
-    const meta = td ? [td.category, td.time?'⏱ '+td.time:'', (r.portions||1)>1?(r.portions)+' Portionen':''].filter(Boolean).join(' · ') : (r.portions||1)+' Portion'+(r.portions>1?'en':'');
+    const meta = td ? [td.time?'⏱ '+td.time:'', (r.portions||1)>1?(r.portions)+' Portionen':''].filter(Boolean).join(' · ') : (r.portions||1)>1?(r.portions)+' Portionen':'';
     const chips = td ? (td.tags||[]).map(t=>`<span class="chip ${tagColors[t]||'protein'}">${t}</span>`).join('') : '';
 
     // Build ingredients HTML
@@ -1300,7 +1343,7 @@ function planRenderFoodGroups(){
     {type:'kh',label:'🌾 Kohlenhydrat-Quelle',color:'#854F0B',bg:'#FAEEDA'},
   ];
   container.innerHTML=groups.map(g=>{
-    const foods=db.foods.filter(f=>f.type===g.type);
+    const foods=db.foods.filter(f=>f.type===g.type).sort((a,b)=>a.name.localeCompare(b.name,'de'));
     if(!foods.length)return`<div style="font-size:13px;color:#aaa;">${g.label}: Keine Lebensmittel</div>`;
     const btns=foods.map(f=>{
       const isSel=planSelectedFoods[g.type].includes(f.id);
@@ -1532,7 +1575,6 @@ async function trSaveDirect() {
   const name = document.getElementById('tr-name').value.trim();
   if (!name) { showToast('Bitte Rezeptname eingeben'); return; }
   const portions = parseInt(document.getElementById('tr-portions').value) || 1;
-  const category = document.getElementById('tr-category').value;
   const time = document.getElementById('tr-time').value.trim();
   const tip = document.getElementById('tr-tip').value.trim();
 
@@ -1551,7 +1593,7 @@ async function trSaveDirect() {
     ingredients: [],
     savedAt: new Date().toLocaleDateString('de-DE'),
     isTextRecipe: true,
-    textData: { title: name, portions, time, category, tags: [...trSelectedTags], tip, ingredients, steps }
+    textData: { title: name, portions, time, category: '', tags: [...trSelectedTags], tip, ingredients, steps }
   };
   if (!db.recipes) db.recipes = [];
   db.recipes.push(recipe);
@@ -1621,7 +1663,11 @@ async function rcSaveEditedRecipe() {
   showToast('"'+name+'" aktualisiert ✓');
 }
 
-loadAll();
+// ── INIT ──────────────────────────────────────────────────────
+const savedUser = localStorage.getItem('ec_user');
+if (savedUser === 'vanessa' || savedUser === 'markus') {
+  setUser(savedUser);
+}
 </script>
 </body>
 </html>
