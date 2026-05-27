@@ -45,7 +45,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 12px; }
 .form-field { display: flex; flex-direction: column; gap: 4px; }
 .form-field label { font-size: 11px; color: #888; }
-.form-field input { font-size: 13px; padding: 8px 10px; border: 0.5px solid #d0d0c8; border-radius: 8px; background: #fff; color: #1a1a1a; width: 100%; }
+.form-field input { font-size: 16px; padding: 8px 10px; border: 0.5px solid #d0d0c8; border-radius: 8px; background: #fff; color: #1a1a1a; width: 100%; -webkit-appearance: none; }
 .form-field input:focus { outline: none; border-color: #1D9E75; box-shadow: 0 0 0 2px rgba(29,158,117,0.15); }
 .add-btn { background: #1D9E75; color: #fff; border: none; border-radius: 8px; padding: 9px 20px; font-size: 13px; font-weight: 600; cursor: pointer; }
 .add-btn:hover { background: #0F6E56; }
@@ -70,7 +70,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .score-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
 .score-cell { flex: 1; min-width: 80px; }
 .score-cell label { font-size: 11px; color: #888; display: block; margin-bottom: 3px; }
-.score-cell input { width: 100%; font-size: 13px; padding: 7px 8px; border: 0.5px solid #d0d0c8; border-radius: 8px; background: #fff; color: #1a1a1a; }
+.score-cell input { width: 100%; font-size: 16px; padding: 7px 8px; border: 0.5px solid #d0d0c8; border-radius: 8px; background: #fff; color: #1a1a1a; -webkit-appearance: none; }
 .score-cell input:focus { outline: none; border-color: #1D9E75; }
 .type-select { display: flex; gap: 6px; margin-bottom: 14px; }
 .type-btn { flex: 1; padding: 8px 4px; font-size: 12px; border-radius: 8px; border: 0.5px solid #d0d0c8; background: #f5f5f0; color: #666; cursor: pointer; text-align: center; }
@@ -110,9 +110,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .toast.show { opacity: 1; }
 .hint { font-size: 12px; color: #aaa; }
 select { font-size: 13px; border: 0.5px solid #d0d0c8; background: #fff; color: #1a1a1a; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
-.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: flex-start; justify-content: center; padding: 20px 12px; overflow-y: auto; }
-.modal-overlay.show { display: flex; }
-.modal { background: #fff; border-radius: 16px; padding: 1.5rem; max-width: 500px; width: 100%; margin: auto; }
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.modal-overlay.show { display: block; }
+.modal { background: #fff; border-radius: 16px; padding: 1.5rem; max-width: 500px; width: calc(100% - 32px); margin: 20px auto 60px; position: relative; z-index: 2001; }
 .modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
 .modal p { font-size: 13px; color: #666; margin-bottom: 16px; line-height: 1.6; }
 .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
@@ -126,7 +126,7 @@ select { font-size: 13px; border: 0.5px solid #d0d0c8; background: #fff; color: 
   .container { padding: 12px; }
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
 }
-.login-screen { position: fixed; inset: 0; background: #f5f5f0; display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.login-screen { position: fixed; inset: 0; background: #f5f5f0; display: flex; align-items: center; justify-content: center; z-index: 9999; -webkit-overflow-scrolling: touch; }
 .login-card { background: #fff; border-radius: 20px; padding: 2rem; max-width: 360px; width: 90%; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
 .login-card h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
 .login-card p { font-size: 14px; color: #888; margin-bottom: 1.5rem; }
@@ -479,11 +479,11 @@ select { font-size: 13px; border: 0.5px solid #d0d0c8; background: #fff; color: 
       </div>
       <div class="form-field">
         <label>Zutaten — eine Zeile pro Zutat (z.B. "300g Hähnchenbrust")</label>
-        <textarea id="tr-ingredients" rows="5" style="width:100%;padding:10px;border:0.5px solid #d0d0c8;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;margin-top:4px;" placeholder="300g Hähnchenbrust&#10;200g Reis&#10;1 Paprika&#10;2 EL Sojasoße"></textarea>
+        <textarea id="tr-ingredients" rows="5" style="width:100%;padding:10px;border:0.5px solid #d0d0c8;border-radius:8px;font-size:16px;font-family:inherit;resize:vertical;-webkit-appearance:none;line-height:1.6;margin-top:4px;" placeholder="300g Hähnchenbrust&#10;200g Reis&#10;1 Paprika&#10;2 EL Sojasoße"></textarea>
       </div>
       <div class="form-field">
         <label>Zubereitungsschritte — eine Zeile pro Schritt</label>
-        <textarea id="tr-steps" rows="5" style="width:100%;padding:10px;border:0.5px solid #d0d0c8;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;margin-top:4px;" placeholder="1. Hähnchen in Streifen schneiden und anbraten.&#10;2. Reis nach Packungsanleitung kochen.&#10;3. Paprika in Streifen schneiden und dazugeben.&#10;4. Mit Sojasoße abschmecken und anrichten."></textarea>
+        <textarea id="tr-steps" rows="5" style="width:100%;padding:10px;border:0.5px solid #d0d0c8;border-radius:8px;font-size:16px;font-family:inherit;resize:vertical;-webkit-appearance:none;line-height:1.6;margin-top:4px;" placeholder="1. Hähnchen in Streifen schneiden und anbraten.&#10;2. Reis nach Packungsanleitung kochen.&#10;3. Paprika in Streifen schneiden und dazugeben.&#10;4. Mit Sojasoße abschmecken und anrichten."></textarea>
       </div>
       <div class="form-field">
         <label>Tipp (optional)</label>
@@ -509,7 +509,7 @@ select { font-size: 13px; border: 0.5px solid #d0d0c8; background: #fff; color: 
         <label>Zubereitungsschritte (optional) — eine Zeile pro Schritt</label>
         <textarea id="plan-save-steps" rows="6" placeholder="1. Hähnchen würzen und anbraten.
 2. Gemüse in Streifen schneiden.
-3. Alles in einer Bowl anrichten." style="width:100%;padding:10px;border:0.5px solid #d0d0c8;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;margin-top:4px;"></textarea>
+3. Alles in einer Bowl anrichten." style="width:100%;padding:10px;border:0.5px solid #d0d0c8;border-radius:8px;font-size:16px;font-family:inherit;resize:vertical;-webkit-appearance:none;line-height:1.6;margin-top:4px;"></textarea>
       </div>
     </div>
     <div class="modal-btns">
@@ -536,11 +536,11 @@ select { font-size: 13px; border: 0.5px solid #d0d0c8; background: #fff; color: 
       </div>
       <div class="form-field">
         <label>Zutaten — eine Zeile pro Zutat (z.B. "200g Hähnchenbrust")</label>
-        <textarea id="re-ingredients" rows="5" style="width:100%;padding:10px;border:0.5px solid #d0d0c8;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;margin-top:4px;" placeholder="200g Hähnchenbrust&#10;100g Reis&#10;1 Paprika"></textarea>
+        <textarea id="re-ingredients" rows="5" style="width:100%;padding:10px;border:0.5px solid #d0d0c8;border-radius:8px;font-size:16px;font-family:inherit;resize:vertical;-webkit-appearance:none;line-height:1.6;margin-top:4px;" placeholder="200g Hähnchenbrust&#10;100g Reis&#10;1 Paprika"></textarea>
       </div>
       <div class="form-field">
         <label>Zubereitungsschritte — eine Zeile pro Schritt</label>
-        <textarea id="re-steps" rows="5" style="width:100%;padding:10px;border:0.5px solid #d0d0c8;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.6;margin-top:4px;" placeholder="1. Hähnchen anbraten.&#10;2. Reis kochen.&#10;3. Alles anrichten."></textarea>
+        <textarea id="re-steps" rows="5" style="width:100%;padding:10px;border:0.5px solid #d0d0c8;border-radius:8px;font-size:16px;font-family:inherit;resize:vertical;-webkit-appearance:none;line-height:1.6;margin-top:4px;" placeholder="1. Hähnchen anbraten.&#10;2. Reis kochen.&#10;3. Alles anrichten."></textarea>
       </div>
       <div class="form-field">
         <label>Tipp (optional)</label>
@@ -1539,7 +1539,6 @@ let trSelectedTags = [];
 function openTextRecipeModal() {
   document.getElementById('tr-name').value = '';
   document.getElementById('tr-portions').value = '1';
-  document.getElementById('tr-category').value = 'Mittag';
   document.getElementById('tr-time').value = '';
   document.getElementById('tr-ingredients').value = '';
   document.getElementById('tr-steps').value = '';
@@ -1550,7 +1549,9 @@ function openTextRecipeModal() {
     b.style.flex = 'none';
     b.style.padding = '5px 12px';
   });
-  document.getElementById('text-recipe-modal').classList.add('show');
+  const modal = document.getElementById('text-recipe-modal');
+  modal.classList.add('show');
+  modal.scrollTop = 0;
 }
 
 function closeTextRecipeModal() {
