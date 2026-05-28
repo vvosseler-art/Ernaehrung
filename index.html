@@ -106,6 +106,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .recipe-dropdown-body { display: none; padding: 0 14px 14px; border-top: 0.5px solid #f0f0ea; }
 .recipe-dropdown-body.open { display: block; }
 .recipe-dropdown-actions { display: flex; gap: 6px; justify-content: flex-end; padding-top: 10px; margin-top: 10px; border-top: 0.5px solid #f0f0ea; }
+.gram-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 3px; background: #e0e0d8; outline: none; }
+.gram-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 26px; height: 26px; border-radius: 50%; background: #1D9E75; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+.gram-slider::-moz-range-thumb { width: 26px; height: 26px; border-radius: 50%; background: #1D9E75; cursor: pointer; border: none; }
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: #fff; padding: 10px 22px; border-radius: 20px; font-size: 13px; font-weight: 500; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 9999; white-space: nowrap; }
 .toast.show { opacity: 1; }
 .hint { font-size: 12px; color: #aaa; }
@@ -1287,7 +1290,17 @@ function renderSavedRecipes(){
       </div>
       <div class="recipe-dropdown-body" id="rd-body-${r.id}">
         ${chips?`<div style="margin-top:10px;">${chips}</div>`:''}
+
+        <div style="display:flex;align-items:center;gap:10px;margin-top:12px;background:#f5f5f0;border-radius:10px;padding:10px 12px;">
+          <span style="font-size:13px;font-weight:600;color:#555;flex:1;">🍽️ Portionen kochen</span>
+          <button onclick="recipeChangePortion(${r.id},-1)" style="width:30px;height:30px;border-radius:50%;border:0.5px solid #d0d0c8;background:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#555;flex-shrink:0;">−</button>
+          <span style="font-size:18px;font-weight:700;color:#1D9E75;min-width:30px;text-align:center;" id="rd-portions-${r.id}">${r.portions||1}</span>
+          <button onclick="recipeChangePortion(${r.id},1)" style="width:30px;height:30px;border-radius:50%;border:0.5px solid #d0d0c8;background:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#555;flex-shrink:0;">+</button>
+        </div>
+
+        <div id="rd-ingredients-${r.id}">
         ${ingHtml}
+        </div>
         ${stepsHtml}
         ${tipHtml}
         <div class="recipe-dropdown-actions">
@@ -1395,48 +1408,37 @@ function planRenderEditable(results, targets, days=1) {
     const fac=r.grams/100;
     const tc=typeColor(r.food.type), tbg=typeBg(r.food.type), tl=typeLabel(r.food.type);
     const totalG=r.grams*days;
-    return `<div style="background:#f5f5f0;border-radius:10px;padding:10px 12px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+    const maxSlider = Math.max(400, r.grams*3);
+    return `<div style="background:#f5f5f0;border-radius:10px;padding:12px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
         <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${tbg};color:${tc};font-weight:600;">${tl}</span>
         <span style="font-weight:600;font-size:13px;flex:1;">${r.food.name}</span>
-        ${days>1?`<span style="font-size:12px;color:#555;">Gesamt: <strong style="color:${tc};">${totalG} g</strong></span>`:''}
+        <span style="font-size:22px;font-weight:700;color:${tc};min-width:60px;text-align:right;" id="plan-gram-label-${i}">${r.grams} g</span>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div style="flex:1;">
-          <div style="font-size:11px;color:#aaa;" id="plan-item-info-${i}">${(r.food.kcal*fac).toFixed(0)} kcal · P:${(r.food.p*fac).toFixed(1)}g · KH:${(r.food.k*fac).toFixed(1)}g · F:${(r.food.f*fac).toFixed(1)}g pro Mahlzeit</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <button onclick="planAdjust(${i},-5)" style="width:28px;height:28px;border-radius:50%;border:0.5px solid #d0d0c8;background:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#555;">−</button>
-          <input type="number" id="plan-gram-${i}" value="${r.grams}" min="5" max="2000" step="5"
-            onchange="planUpdateGram(${i},this.value)"
-            style="width:68px;text-align:center;font-size:15px;font-weight:600;color:${tc};padding:5px 6px;border:0.5px solid #d0d0c8;border-radius:8px;background:#fff;" />
-          <span style="font-size:13px;color:#888;">g</span>
-          <button onclick="planAdjust(${i},5)" style="width:28px;height:28px;border-radius:50%;border:0.5px solid #d0d0c8;background:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#555;">+</button>
-        </div>
+      <input type="range" class="gram-slider" id="plan-gram-${i}"
+        min="5" max="${maxSlider}" step="5" value="${r.grams}"
+        oninput="planSliderChange(${i},this.value)"
+        style="--tc:${tc};" />
+      <div style="display:flex;justify-content:space-between;margin-top:4px;">
+        <span style="font-size:11px;color:#aaa;" id="plan-item-info-${i}">${(r.food.kcal*fac).toFixed(0)} kcal · P:${(r.food.p*fac).toFixed(1)}g · KH:${(r.food.k*fac).toFixed(1)}g · F:${(r.food.f*fac).toFixed(1)}g pro Mahlzeit</span>
+        ${days>1?`<span style="font-size:11px;font-weight:600;color:${tc};" id="plan-total-label-${i}">Gesamt: ${totalG} g</span>`:''}
       </div>
     </div>`;
   }).join('');
   planUpdateLive(results, targets, days);
 }
 
-function planAdjust(idx, delta) {
+function planSliderChange(idx, val) {
   const pr = window._planLastResult;
   if (!pr) return;
-  const input = document.getElementById('plan-gram-'+idx);
-  const newVal = Math.max(5, (parseInt(input.value)||0) + delta);
-  input.value = newVal;
-  pr.results[idx].grams = newVal;
-  // update total display
-  planUpdateLive(pr.results, pr.targets, pr.days||1);
-  // update total label inline
-  const totalSpan = input.closest('div[style*="border-radius:10px"]')?.querySelector('strong');
-  if (totalSpan && pr.days>1) totalSpan.textContent = newVal*(pr.days||1)+' g';
-}
-
-function planUpdateGram(idx, val) {
-  const pr = window._planLastResult;
-  if (!pr) return;
-  pr.results[idx].grams = Math.max(5, parseInt(val)||5);
+  const grams = Math.max(5, parseInt(val)||5);
+  pr.results[idx].grams = grams;
+  // update gram label
+  const lbl = document.getElementById('plan-gram-label-'+idx);
+  if (lbl) lbl.textContent = grams + ' g';
+  // update total label
+  const totalLbl = document.getElementById('plan-total-label-'+idx);
+  if (totalLbl) totalLbl.textContent = 'Gesamt: ' + (grams * (pr.days||1)) + ' g';
   planUpdateLive(pr.results, pr.targets, pr.days||1);
 }
 
@@ -1493,8 +1495,12 @@ function planReset() {
   if (!pr || !pr.originalGrams) return;
   pr.results.forEach((r,i) => {
     r.grams = pr.originalGrams[i];
-    const inp = document.getElementById('plan-gram-'+i);
-    if (inp) inp.value = r.grams;
+    const slider = document.getElementById('plan-gram-'+i);
+    if (slider) slider.value = r.grams;
+    const lbl = document.getElementById('plan-gram-label-'+i);
+    if (lbl) lbl.textContent = r.grams + ' g';
+    const totalLbl = document.getElementById('plan-total-label-'+i);
+    if (totalLbl) totalLbl.textContent = 'Gesamt: ' + (r.grams * (pr.days||1)) + ' g';
   });
   planUpdateLive(pr.results, pr.targets, pr.days||1);
   showToast('Mengen zurückgesetzt');
@@ -1604,7 +1610,69 @@ async function trSaveDirect() {
   showToast('"' + name + '" gespeichert ✓');
 }
 
-// ── REZEPT BEARBEITEN ─────────────────────────────────────────
+// ── REZEPT PORTIONEN ─────────────────────────────────────────
+const recipeCookPortions = {}; // tracks current cook portions per recipe id
+
+function recipeChangePortion(id, delta) {
+  if (!recipeCookPortions[id]) {
+    const r = db.recipes.find(r=>r.id===id);
+    recipeCookPortions[id] = r ? (r.portions||1) : 1;
+  }
+  recipeCookPortions[id] = Math.max(1, recipeCookPortions[id] + delta);
+  const lbl = document.getElementById('rd-portions-'+id);
+  if (lbl) lbl.textContent = recipeCookPortions[id];
+  rcRenderScaledIngredients(id);
+}
+
+function rcRenderScaledIngredients(id) {
+  const r = db.recipes.find(r=>r.id===id);
+  if (!r) return;
+  const basePor = r.portions || 1;
+  const cookPor = recipeCookPortions[id] || basePor;
+  const factor = cookPor / basePor;
+  const container = document.getElementById('rd-ingredients-'+id);
+  if (!container) return;
+
+  let html = '<div style="font-size:12px;font-weight:600;color:#555;margin:10px 0 5px;">Zutaten</div><div style="margin-bottom:10px;">';
+  if (r.textData && r.textData.ingredients && r.textData.ingredients.length) {
+    r.textData.ingredients.forEach(i => {
+      // Try to scale numeric amounts
+      const scaled = scaleAmount(i.amount, factor);
+      html += `<span style="display:inline-block;background:#f5f5f0;border-radius:6px;padding:2px 8px;margin:2px;font-size:12px;">${scaled?'<strong>'+scaled+'</strong> ':''}${i.name}</span>`;
+    });
+  } else if (r.ingredients && r.ingredients.length) {
+    r.ingredients.forEach(i => {
+      const scaled = Math.round(i.amount * factor);
+      html += `<span style="display:inline-block;background:#f5f5f0;border-radius:6px;padding:2px 8px;margin:2px;font-size:12px;"><strong>${scaled}g</strong> ${i.name}</span>`;
+    });
+  }
+  html += '</div>';
+  if (cookPor !== basePor) {
+    html += `<div style="font-size:11px;color:#1D9E75;margin-bottom:6px;">✓ Mengen angepasst für ${cookPor} Portion${cookPor>1?'en':''}</div>`;
+  }
+  container.innerHTML = html;
+}
+
+function scaleAmount(amountStr, factor) {
+  if (!amountStr) return '';
+  // Extract leading number and scale it
+  const m = amountStr.match(/^([\d,\.\/]+)\s*(.*)/);
+  if (!m) return amountStr; // can't scale, return as-is
+  let num = m[1];
+  const unit = m[2];
+  // Handle fractions like 1/3
+  if (num.includes('/')) {
+    const parts = num.split('/');
+    num = parseFloat(parts[0]) / parseFloat(parts[1]);
+  } else {
+    num = parseFloat(num.replace(',','.'));
+  }
+  if (isNaN(num)) return amountStr;
+  const scaled = num * factor;
+  // Format nicely
+  const formatted = scaled % 1 === 0 ? scaled.toFixed(0) : scaled.toFixed(1);
+  return formatted + (unit ? ' '+unit : '');
+}
 function rcEditRecipe(id) {
   const r = db.recipes.find(r=>r.id===id);
   if (!r) return;
